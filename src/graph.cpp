@@ -110,14 +110,6 @@ void projectA_hash_graph_append_node(projectA_hash_graph_t* graph, string id, ui
 // Function to append an edge to a projectA_hash_graph_t
 void projectA_hash_graph_append_edge(projectA_hash_graph_t* graph, string start, string end) {
 
-    // Create a new edge
-    projectA_edge_t edge;
-    edge.start = start;
-    edge.end = end;
-
-    // Append edge to the graph
-    graph->edges.push_back(edge);
-
     // Add edges to the nodes
     graph->nodes[start]->next.push_back(graph->nodes[end]);
     graph->nodes[end]->prev.push_back(graph->nodes[start]);

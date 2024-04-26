@@ -21,7 +21,8 @@
 using namespace std;
 
 // Constructor for parameter struct
-projectA_gt_gwfa_parameters_t::projectA_gt_gwfa_parameters_t(const char* r) : read(r) {}
+projectA_gt_gwfa_parameters_t::projectA_gt_gwfa_parameters_t(gssw_graph* gssw , gwf_graph_t* gwf, const char* r) : 
+                                                                gssw(gssw), gwf(gwf), read(r) {}
 
 
 // Function to convert projectA_hash_graph_t into gssw_graph
@@ -84,101 +85,119 @@ gssw_graph* projectA_hash_graph_to_gt_gssw_graph(projectA_hash_graph_t* in_graph
 // Function to initialize gt_gwfa
 void* projectA_gt_gwfa_init(vector<projectA_algorithm_input_t>& graphs) {
 
-    // // Create our io vectors for the gssw algorithm
-    // projectA_gt_gwfa_io_t* out = new projectA_gt_gwfa_io_t;
+    // Create the io vectors for the gt_gwfa algorithm
+    projectA_gt_gwfa_io_t* out = new projectA_gt_gwfa_io_t;
 
-    // // Iterate over the input graphs
-    // for(auto& itr : graphs) {
-    //     // Construct gssw graph
-    //     gssw_graph* new_gssw = projectA_hash_graph_to_gt_gssw_graph(itr.graph);
+    // Iterate over the input graphs
+    for (auto& itr : graphs) {
 
-    //     // Construct parameter entry
-    //     projectA_gt_gwfa_parameters_t entry(new_gssw, itr.read.c_str());
+        // Construct gssw graph
+        gssw_graph* new_gssw = projectA_hash_graph_to_gt_gssw_graph(itr.graph);
 
-    //     // Append to parameter vector
-    //     out->parameters.push_back(entry);
-    // }
+        // Create gwf graph
+        gwf_graph_t* new_gwf = gt_gssw_to_gwf_direct(new_gssw);
 
-    // // Reserve space for results
-    // out->gms.reserve(out->parameters.size());
+        // Construct parameter entry
+        projectA_gt_gwfa_parameters_t entry(new_gssw, new_gwf, itr.read.c_str());
 
-    // // Cast return value into void pointer
-    // return static_cast<void*>(out);
-    return nullptr;
+        // Append entry to parameter vector
+        out->parameters.push_back(entry);
+    }
+
+    // Reserve space for results
+    out->gms.reserve(out->parameters.size());
+
+    // Cast return value into void pointer
+    return static_cast<void*>(out);
 }
 
 
 // Function to calculate a batch in gt_gwfa
-void* projectA_gt_gwfa_calculate_batch(void* input_ptr) {
+void* projectA_gt_gwfa_calculate_batch(void* ptr) {
 
-    if (input_ptr == nullptr) {
+    if (ptr == nullptr) {
         cerr << "Error: input is nullptr!\n";
         exit(1);
     }
 
-    auto input = static_cast<projectA_gt_gwfa_io_t*>(input_ptr);
+    // Define and cast local variables
+    auto input = static_cast<projectA_gt_gwfa_io_t*>(ptr);
+    auto& parameters = input->parameters;
+    auto& gms = input->gms;
 
-    // Iteratir over all parameters and run the algorithm
-    int i = 0;
-    for (auto& entry : input->parameters) {
-        // gt_print_gssw_graph(entry.gssw);
-        // cerr << i << endl;
-        
-        input->gms.push_back(gt_read_align_gwf(entry.gwf, entry.gssw, entry.read));
-        // cerr << gt_read_align_gwf(entry.gwf, entry.gssw, entry.read) << endl;
-
-        if (input->gms[i] == nullptr) {
-            cerr << "Error: gms is nullptr at:\t" << i << endl;
-            exit(1);
-        }
-        // gssw_print_graph_mapping(input->gms[i], stderr);
-        // cerr << endl;
-
-        gt_gwf_free(input->parameters[i].gwf);
-        gssw_graph_destroy(input->parameters[i].gssw);
-        gssw_graph_mapping_destroy(input->gms[i]);
-        i++;
+    // Run gt_gwfa on every set of parameters
+    for (int i = 0; i < parameters.size(); ++i) {
+        auto& parameter = parameters[i];
+        gms.push_back(gt_read_align_gwf(parameter.gwf, parameter.gssw, parameter.read));
     }
     
-    // Create output pointer
-    return input_ptr;
+    // Cast return value into void pointer
+    return static_cast<void*>(ptr);
 }
 
 
 // Function to handle post of gt_gwfa
-void projectA_gt_gwfa_post(void* input_ptr) {
+void projectA_gt_gwfa_post(void* ptr) {
 
-    if (input_ptr == nullptr) {
+    if (ptr == nullptr) {
         cerr << "Error: input is nullptr!\n";
         exit(1);
     }
 
-    auto input = static_cast<pair<vector<projectA_gt_gwfa_parameters_t>*, vector<gssw_graph_mapping*>*>*>(input_ptr);
-    auto& parameters = *(input->first);
-    auto& mappings = *(input->second);
+    // Define and cast local variables
+    auto input = static_cast<projectA_gt_gwfa_io_t*>(ptr);
+    auto& parameters = input->parameters;
+    auto& gms = input->gms;
+
 
     // TODO: Create usable results
+    for (auto& gm : gms) {
+        gssw_print_graph_mapping(gm, stderr);
+    }
+
+
 
     // Free memory allocated for mappings
-    for (auto& mapping : mappings) {
-        gssw_graph_mapping_destroy(mapping);
+    for (auto& gm : gms) {
+        gssw_graph_mapping_destroy(gm);
     }
+    gms.clear();
 
     // Free memory allocated for parameters
     for (auto& parameter : parameters) {
-        gt_gwf_free(parameter.gwf);
         gssw_graph_destroy(parameter.gssw);
+        gt_gwf_free(parameter.gwf);
     }
+    parameters.clear();
 
     // Free the input pointer itself
     delete input;
 }
 
 // Function to get the algorithm struct for gt_gwfa
-void projectA_get_gt_gwfa(projectA_algorithm_t& gt_gwfa) {
+projectA_algorithm_t* projectA_get_gt_gwfa() {
 
-    // Assign function pointers with correct signatures
-    gt_gwfa.init = projectA_gt_gwfa_init;
-    gt_gwfa.calculate_batch = projectA_gt_gwfa_calculate_batch;
-    gt_gwfa.post = projectA_gt_gwfa_post;
+    // Create new algorithm object
+    projectA_algorithm_t* gt_gwfa = new projectA_algorithm_t;
+
+    // Assign function pointers 
+    gt_gwfa->init = projectA_gt_gwfa_init;
+    gt_gwfa->calculate_batch = projectA_gt_gwfa_calculate_batch;
+    gt_gwfa->post = projectA_gt_gwfa_post;
+
+    return gt_gwfa;
+}
+
+
+// Function to delete projectA_algorithm_t struct
+void projectA_gt_gwfa_destroy(projectA_algorithm_t* gt_gwfa) {
+
+    // Check if the struct still exists
+    if (gt_gwfa == nullptr) {
+        cerr << "Warning: gssw struct is null pointer!\n";
+        return;
+    }
+
+    // Delete struct
+    delete gt_gwfa;
 }

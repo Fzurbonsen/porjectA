@@ -654,7 +654,9 @@ void projectA_print_graph(FILE* file, projectA_hash_graph_t* graph) {
     }
 
     // Write links (edges)
-    for (size_t i = 0; i < graph->n_edges; ++i) {
-        fprintf(file, "L\t%s\t+\t%s\t+\t0M\n", graph->edges[i].start.c_str(), graph->edges[i].end.c_str());
+    for (auto& it : graph->nodes) {
+        for (auto& next : it.second->next) {
+            fprintf(file, "L\t%s\t+\t%s\t+\t0M\n", it.second->id.c_str(), next->id.c_str());
+        }
     }
 }

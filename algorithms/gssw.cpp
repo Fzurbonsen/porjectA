@@ -97,7 +97,7 @@ void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs) {
 
 
     // Iterate over the input graphs
-    for(auto& itr : graphs) {
+    for (auto& itr : graphs) {
         // Construct gssw graph
         gssw_graph* new_gssw = projectA_hash_graph_to_gssw_graph(itr.graph, nt_table, mat, gap_open, gap_extension);
 
@@ -163,11 +163,8 @@ void projectA_gssw_post(void* ptr) {
     auto& gms = input->gms;
 
 
-    // gssw_test();
-
-
     // TODO: Postprocessing data
-    for (auto& gm :gms) {
+    for (auto& gm : gms) {
         gssw_print_graph_mapping(gm, stderr);
     }
 
