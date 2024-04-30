@@ -27,9 +27,12 @@ struct projectA_gssw_parameters_t {
     uint8_t gap_open;
     uint8_t gap_extension;
 
+    projectA_hash_graph_t* projectA_hash_graph;
+
     // Constructor for projectA_gssw_parameters_t
     projectA_gssw_parameters_t(gssw_graph* graph, const char* read, int8_t* nt_table,
-                                 int8_t* mat, uint8_t gap_open, uint8_t gap_extension);
+                                 int8_t* mat, uint8_t gap_open, uint8_t gap_extension,
+                                 projectA_hash_graph_t* projectA_hash_graph);
 };
 
 
@@ -40,24 +43,49 @@ struct projectA_gssw_io_t {
 };
 
 
-
+// PRE:     in_graph, nt_table, mat, gap_open, gap_extension
+//      in_graph:       Pointer to a projectA_hash_graph_t.
+//      nt_table:       Pointer to int8_t holding a valid nt table created by a gssw helper function for this graph.
+//      mat:            Pointer to int8_t jolding a valid mat created by a gssw helper function for this graph.
+//      gap_open:       Uint8_t that holds the gap open parameter for this graph alignment.
+//      gap-extension:  Uint8_t that holds the gap extension paramter for this graph alignment.
+// POST:    return
+//      return:         Pointer to gssw graph with the same information as the in_graph and the relevant paramaters given as inputs.
 gssw_graph* projectA_hash_graph_to_gssw_graph(projectA_hash_graph_t* in_graph, int8_t* nt_table, 
                                                 int8_t* mat, uint8_t gap_open, uint8_t gap_extension);
 
 
+projectA_cigar_t projectA_gssw_get_cigar(gssw_cigar* cigar);
+
+projectA_alignment_t* projectA_gssw_graph_mapping_to_alignment(projectA_hash_graph_t* graph, gssw_graph_mapping* gm);
+
+
+
+// PRE:     graphs
+//      graphs:         Reference of a vector of projectA_algorithm_input_t that holds the relveant information
+//                      to create the gssw structs needed for alignment.
+// POST:    return
+//      return:         Void pointer that holds the populated structs needed for alignment by gssw including reserved space for the results.
 void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs);
 
 
+// PRE:     ptr
+//      ptr:            Void pointer that holds the populated structs needed for alignment by gssw including reserved space for the results.
+// POST:    return
+//      return:         Void pointer that holds the results of the gssw alignment as well as the gssw structs needed for alignment.
 void* projectA_gssw_calculate_batch(void* ptr);
 
 
+// PRE:     ptr
+//      ptr:            Void pointer that holds the results of the gssw alignment as well as the gssw structs needed for alignment.
+// POST:    
 void projectA_gssw_post(void* ptr);
 
 
 
 // PRE:     
 // POST:    return
-//      return:     Pointer to a projectA_algorithm_t struct that holds the function pointers for gssw.
+//      return:         Pointer to a projectA_algorithm_t struct that holds the function pointers for gssw.
 projectA_algorithm_t* projectA_get_gssw();
 
 

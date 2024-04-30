@@ -22,6 +22,9 @@ TEST_EXE = $(BIN_DIR)/$(TEST_TARGET)
 LIB_FLAGS = -lz -lgssw -lm -lstdc++ -lgt_gwfa -lgwfa -ledlib
 LDFLAGS = -L$(LIB_DIR)
 
+# Libraries
+LIBS = $(LIB_DIR)/libgt_gwfa.a $(LIB_DIR)/libgssw.a
+
 # Source files
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 TEST_SRCS = $(wildcard $(TEST_DIR)/*.cpp)
@@ -39,21 +42,21 @@ TEST_HEADERS = $(wildcard $(TEST_DIR)/*.hpp)
 ALGO_HEADERS = $(wildcard $(ALGO_DIR)/*.hpp)
 
 # Default target
-all: algorithms $(EXE)
+all: $(EXE)
 
-tests: algorithms $(TEST_EXE) run_tests
+tests: $(TEST_EXE) run_tests
 
-algorithms: $(LIB_DIR)/libgt_gwfa.a $(LIB_DIR)/libgssw.a
+algorithms: $(LIBS)
 
 
 # Linking step for the executable
-$(EXE): $(OBJS) $(MAIN_OBJ)
+$(EXE): $(LIBS) $(OBJS) $(MAIN_OBJ)
 	@mkdir -p $(BIN_DIR)
-	$(CXX) $(LDFLAGS) -o $@ $^ -I$(INC_DIR) $(LIB_FLAGS)
+	$(CXX) $(LDFLAGS) -o $@ $(filter %.o, $^) -I$(INC_DIR) $(LIB_FLAGS)
 
-$(TEST_EXE): $(OBJS) $(TEST_OBJS)
+$(TEST_EXE): $(LIBS) $(OBJS) $(TEST_OBJS)
 	@mkdir -p $(BIN_DIR)
-	$(CXX) $(LDFLAGS) -o $@ $^ -I$(INC_DIR) $(LIB_FLAGS)
+	$(CXX) $(LDFLAGS) -o $@ $(filter %.o, $^) -I$(INC_DIR) $(LIB_FLAGS)
 
 
 # Compile src dir

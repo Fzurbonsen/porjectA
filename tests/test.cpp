@@ -174,15 +174,14 @@ int main() {
     projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/reference_graph.gfa");
     projectA_index_hash_graph(ref_graph);
 
+
     projectA_read_node_list(clusters, "./test_cases/tests.txt");
-
-
     vector<projectA_algorithm_input_t> graphs;
     projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
 
-    for (auto& graph : graphs) {
-        projectA_print_graph(stderr, graph.graph);
-    }
+    // for (auto& graph : graphs) {
+    //     projectA_print_graph(stderr, graph.graph);
+    // }
 
 
 
@@ -192,11 +191,13 @@ int main() {
     // }
     // fclose(file);
 
+    void* ptr;
+
     // // Tests for gt_gwfa:
     // cerr << "testing gt_gwfa!\n";
     // projectA_algorithm_t* gt_gwfa = projectA_get_gt_gwfa();
     // cerr << "loading inputs\n";
-    // void* ptr = gt_gwfa->init(graphs);
+    // ptr = gt_gwfa->init(graphs);
     // cerr << "calculate batch\n";
     // ptr = gt_gwfa->calculate_batch(ptr);
     // cerr << "entering post\n";
@@ -213,17 +214,17 @@ int main() {
 
 
 
-    // // Tests for gssw:
-    // cerr << "testing gssw!" << endl;
-    // projectA_algorithm_t* gssw = projectA_get_gssw();
-    // cerr << "loading inputs\n";
-    // ptr = gssw->init(graphs);
-    // cerr << "calculating batch\n";
-    // gssw->calculate_batch(ptr);
-    // cerr << "entering post\n";
-    // gssw->post(ptr);
-    // cerr << "destroying algorithm struct\n";
-    // projectA_gssw_destroy(gssw);
+    // Tests for gssw:
+    cerr << "testing gssw!" << endl;
+    projectA_algorithm_t* gssw = projectA_get_gssw();
+    cerr << "loading inputs\n";
+    ptr = gssw->init(graphs);
+    cerr << "calculating batch\n";
+    gssw->calculate_batch(ptr);
+    cerr << "entering post\n";
+    gssw->post(ptr);
+    cerr << "destroying algorithm struct\n";
+    projectA_gssw_destroy(gssw);
 
 
 

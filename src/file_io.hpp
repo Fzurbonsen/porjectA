@@ -56,13 +56,6 @@ void projectA_read_cluster_file(string& fileName, unordered_map<string, vector<s
 // PRE:     fileName
 //      fileName:       String containing the path to a .gfa file that contains a reference graph
 // POST:    return
-//      return:         Pointer to a projectA_graph_t that holds the graph from the .gfa file.
-projectA_graph_t* projectA_read_gfa(const string& fileName);
-
-
-// PRE:     fileName
-//      fileName:       String containing the path to a .gfa file that contains a reference graph
-// POST:    return
 //      return:         Pointer to a projectA_hash_graph_t that holds the graph from the .gfa file.
 projectA_hash_graph_t* projectA_hash_read_gfa(const string& fileName);
 
@@ -74,14 +67,6 @@ projectA_hash_graph_t* projectA_hash_read_gfa(const string& fileName);
 //      node_lists:     Reference to a vector holding projectA_node_list_t where the node_lists
 //                      and corresponding reads stored in the file at fileName have been added.
 void projectA_read_node_list(vector<projectA_node_list_t>& node_lists, const string& fileName);
-
-
-// PRE:     file, graph
-//      file:           Valid pointer to an output file.
-//      graph:          Pointer to a projectA_graph_t.
-// POST:    file
-//      file:           The graph in graph is printed to file
-void projectA_print_graph(FILE* file, projectA_graph_t* graph);
 
 
 // PRE:     file, graph

@@ -19,7 +19,7 @@ using namespace std;
 #ifndef PROJECTA_GRAPH_HPP_STRUCTS
 #define PROJECTA_GRAPH_HPP_STRUCTS
 
-// Struct that holds a CIGAR element (A,C,G,T) and how often it is repeated
+// Struct that holds a CIGAR element and how often it is repeated
 struct projectA_cigar_element_t {
     uint32_t len; // Number of consecutive repetitions of the element
     char type; // Type of the element
@@ -29,7 +29,7 @@ struct projectA_cigar_element_t {
 // Struct that holds a complete CIGAR, being an array of cigar elements
 struct projectA_cigar_t {
     uint32_t len; // Number of CIGAR elements in the array
-    projectA_cigar_element_t* elements; // Array of CIGAR elements
+    vector<projectA_cigar_element_t> elements; // Array of CIGAR elements
 };
 
 
@@ -49,23 +49,17 @@ struct projectA_node_t {
     vector<projectA_node_t*> next; // Next nodes
     vector<projectA_node_t*> prev; // Previous nodes
 
-    bool visited = false; // Auxiliary bool used to speed up certain functions 
+    bool visited = false; // Auxiliary bool used to speed up certain functions
 };
 
 
-// Struct to hold reference graph
-struct projectA_graph_t {
-    uint32_t n_nodes; // number of nodes
-    uint32_t n_edges; // number of edges
-
-    // Nodes
-    vector<string> id; // Vector of node ids
-    vector<uint32_t> len; // Vector of sequence lengths
-    vector<string> seq; // Vector of sequences 
-    vector<projectA_cigar_t> cigars; // Vector of CIGARs
-
-    // Edges
-    vector<projectA_edge_t> edges; // Vector of edges in the graph 
+// Struct to hold an alignment
+struct projectA_alignment_t {
+    uint32_t offset; // Offset in the first node 
+    int32_t score;  // Alignment score
+    uint32_t size; // Number of nodes included in the alignment
+    vector<projectA_node_t*> nodes; // In order vector of nodes that are included in the alignment
+    vector<projectA_cigar_t> cigar; // Vector of cigar elements with position corresponing to nodes in the nodes vector
 };
 
 
@@ -74,7 +68,7 @@ struct projectA_hash_graph_t {
     uint32_t n_nodes; // Number of nodes
     uint32_t n_edges; // Number of edges
     unordered_map<string, projectA_node_t*> nodes; // Map storing nodes for easy access by id
-    vector<projectA_node_t*> nodes_in_order;
+    vector<projectA_node_t*> nodes_in_order; // Vector storing the same node pointers as the map but in topological order
 };
 
 
@@ -110,26 +104,7 @@ struct projectA_node_list_t {
 #include "algorithm.hpp"
 
 void projectA_delete_node(projectA_node_t* node);
-void projectA_delete_graph(projectA_graph_t* graph);
 void projectA_delete_hash_graph(projectA_hash_graph_t* graph);
-
-// PRE:     graph, id, len, seq
-//      graph:      Pointer to a projectA_graph_t.
-//      id:         String that holds a unique id for the node.
-//      len:        Unsigned int of size 32 bit that holds the length of the sequence to be appended.
-//      seq:        String that holds the sequence to be stored in the node.
-// POST:    graph
-//      graph:      Pointer to a projectA_graph_t where the node with the specified id, len, seq has been added.
-void projectA_graph_append_node(projectA_graph_t* graph, string id, uint32_t len, string seq);
-
-
-// PRE:     graph, start, end
-//      graph:      Pointer to a projectA_graph_t.
-//      start:      Unsigned int of size 32 bit that holds the index of the start of the edge.
-//      end:        Unsigned int of size 32 bit that holds the indes of the end of the edge.
-// POST:    graph
-//      graph:      Pointer to a projectA_graph_t where the edge with the specified start and end has been added.
-void projectA_graph_append_edge(projectA_graph_t* graph, string start, string end);
 
 
 // PRE:     graph, id, len, seq, index
@@ -205,5 +180,6 @@ void projectA_index_hash_graph(projectA_hash_graph_t* graph);
 //      graph:      Pointer to a valid projectA_hash_graph_t where the nodes_in_order field has been updated
 //                  with an in order vector of the nodes in the graph.
 void projectA_hash_graph_in_order_nodes(projectA_hash_graph_t* graph);
+
 
 #endif // PROJECTA_GRAPH_HPP_FUNCTS

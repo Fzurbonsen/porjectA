@@ -384,59 +384,10 @@ void projectA_read_cluster_file(string& fileName, unordered_map<string, vector<s
 }
 
 
-projectA_graph_t* projectA_read_gfa(const string& fileName) {
-
-    // Create a new projectA_graph_t object
-    projectA_graph_t* graph = new projectA_graph_t();
-    // Initialize number of nodes
-    graph->n_nodes = 0;
-
-    // Open the file
-    ifstream file(fileName);
-    // Check if the file could be opened
-    if (!file.is_open()) {
-        cerr << "Error: Unable to open file " << fileName << endl;
-        return nullptr;
-    }
-
-    string line;
-    // Read each line of the file
-    while (getline(file, line)) {
-        // Skip empty lines and comments
-        if (line.empty() || line[0] == '#') continue;
-
-        // Read new line
-        istringstream iss(line);
-        string keyword;
-        iss >> keyword;
-
-        // Check if the line is a sequence/node
-        if (keyword == "S") {
-            uint32_t len;
-            string seq, skip, id;
-            iss >> id >> seq >> skip;
-            len = seq.size();
-            projectA_graph_append_node(graph, id, len, seq);
-        }
-
-        // Check if the line is an edge
-        if (keyword == "L") {
-            string start, end;
-            string skip;
-            iss >> start >> skip >> end >> skip;
-            projectA_graph_append_edge(graph, start, end);
-        }
-    }
-
-    file.close();
-    return graph;
-}
-
-
 // Function to read graph from gfa and store as hash graph
 projectA_hash_graph_t* projectA_hash_read_gfa(const string& fileName) {
 
-    // Create a new projectA_graph_t object
+    // Create a new projectA_hash_graph_t object
     projectA_hash_graph_t* graph = new projectA_hash_graph_t();
     // Initialize number of nodes
     graph->n_nodes = 0;
@@ -611,29 +562,6 @@ void projectA_read_node_list(vector<projectA_node_list_t>& node_lists, const str
 
     file.close();
     return;
-}
-
-
-// Function to print a graph to a file in GFA format
-void projectA_print_graph(FILE* file, projectA_graph_t* graph) {
-    // Check if the file is valid
-    if (!file) {
-        cerr << "Error: Invalid file pointer!" << endl;
-        return;
-    }
-
-    // Write header
-    fprintf(file, "H\tVN:Z:1.0\n");
-
-    // Write segments
-    for (size_t i = 0; i < graph->n_nodes; ++i) {
-        fprintf(file, "S\t%s\t%s\tLN:i:%d\n", graph->id[i], graph->seq[i].c_str(), graph->len[i]);
-    }
-
-    // Write links (edges)
-    for (size_t i = 0; i < graph->n_edges; ++i) {
-        fprintf(file, "L\t%lu\t+\t%lu\t+\t0M\n", graph->edges[i].start, graph->edges[i].end);
-    }
 }
 
 

@@ -25,9 +25,11 @@ using namespace std;
 
 // Constructor for parameter struct
 projectA_gssw_parameters_t::projectA_gssw_parameters_t(gssw_graph* graph, const char* read, int8_t* nt_table,
-                                                        int8_t* mat, uint8_t gap_open, uint8_t gap_extension) :
+                                                        int8_t* mat, uint8_t gap_open, uint8_t gap_extension,
+                                                        projectA_hash_graph_t* projectA_hash_graph) :
                                                         graph(graph), read(read), nt_table(nt_table), mat(mat),
-                                                        gap_open(gap_open), gap_extension(gap_extension) {}
+                                                        gap_open(gap_open), gap_extension(gap_extension),
+                                                        projectA_hash_graph(projectA_hash_graph) {}
 
 
 // Function to convert projectA_hash_graph_t into gssw_graph
@@ -45,7 +47,7 @@ gssw_graph* projectA_hash_graph_to_gssw_graph(projectA_hash_graph_t* in_graph, i
     for (auto& curr : in_graph->nodes_in_order) {
 
         // Fill node
-        nodes[i] = (gssw_node*)gssw_node_create(NULL, curr->index, curr->seq.c_str(), nt_table, mat);
+        nodes[i] = (gssw_node*)gssw_node_create(NULL, i, curr->seq.c_str(), nt_table, mat);
 
         // Add to node map
         node_map[curr] = nodes[i];
@@ -80,6 +82,63 @@ gssw_graph* projectA_hash_graph_to_gssw_graph(projectA_hash_graph_t* in_graph, i
 }
 
 
+// Function to convert gssw cigar to projectA cigar
+projectA_cigar_t projectA_gssw_get_cigar(gssw_cigar* cigar) {
+
+    projectA_cigar_t projectA_cigar;
+
+    // Copy cigar length
+    projectA_cigar.len = cigar->length;
+
+    // Reserve cigar size
+    projectA_cigar.elements.reserve(projectA_cigar.len);
+
+    // Iterate over cigar elements
+    for (int i = 0; i < projectA_cigar.len; ++i) {
+
+        projectA_cigar_element_t projectA_cigar_element;
+
+        // Copy cigar element
+        projectA_cigar_element.len = cigar->elements[i].length;
+        projectA_cigar_element.type = cigar->elements[i].type;
+
+        projectA_cigar.elements.push_back(projectA_cigar_element);
+    }
+
+    return projectA_cigar;
+}
+
+
+// Function to convert the gssw graph mapping to the projectA_alignment_t struct
+projectA_alignment_t* projectA_gssw_graph_mapping_to_alignment(projectA_hash_graph_t* graph, gssw_graph_mapping* gm) {
+
+    // Create new projectA_alignment_t
+    projectA_alignment_t* alignment = new projectA_alignment_t;
+
+    // Copy offset and score
+    alignment->offset = gm->position;
+    alignment->score = gm->score;
+    alignment->size = gm->cigar.length;
+
+    // Reserve memory for alignment vectors
+    alignment->nodes.reserve(alignment->size);
+    alignment->cigar.reserve(alignment->size);
+
+    // Iterate over the graph mapping graph cigar
+    for (int i = 0; i < alignment->size; ++i) {
+        auto& node_cigar = gm->cigar.elements[i];
+
+        // Add node to the nodes vector
+        alignment->nodes.push_back(graph->nodes_in_order[node_cigar.node->id]);
+
+        // Add cigar to the cigars vector
+        alignment->cigar.push_back(projectA_gssw_get_cigar(node_cigar.cigar));
+    }
+
+    return alignment;
+};
+
+
 // Function to initialize gssw
 void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs) {
 
@@ -102,7 +161,7 @@ void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs) {
         gssw_graph* new_gssw = projectA_hash_graph_to_gssw_graph(itr.graph, nt_table, mat, gap_open, gap_extension);
 
         // Construct parameter entry
-        projectA_gssw_parameters_t entry(new_gssw, itr.read.c_str(), nt_table, mat, gap_open, gap_extension);
+        projectA_gssw_parameters_t entry(new_gssw, itr.read.c_str(), nt_table, mat, gap_open, gap_extension, itr.graph);
 
         // Append to parameter vector
         out->parameters.push_back(entry);
@@ -162,10 +221,18 @@ void projectA_gssw_post(void* ptr) {
     auto& parameters = input->parameters;
     auto& gms = input->gms;
 
+    vector<projectA_alignment_t*> alignments;
+
 
     // TODO: Postprocessing data
     for (auto& gm : gms) {
         gssw_print_graph_mapping(gm, stderr);
+    }
+
+    for (int i = 0; i < gms.size(); ++i) {
+
+        // TODO Create output in algorithm struct & check output
+        alignments.push_back(projectA_gssw_graph_mapping_to_alignment(parameters[i].projectA_hash_graph, gms[i]));
     }
 
 

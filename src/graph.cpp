@@ -29,14 +29,6 @@ void projectA_delete_node(projectA_node_t* node) {
 }
 
 
-// Function to delete a graph
-void projectA_delete_graph(projectA_graph_t* graph) {
-    if (graph != nullptr) {
-        delete graph;
-    }
-}
-
-
 // Function to delete a hash graph
 void projectA_delete_hash_graph(projectA_hash_graph_t* graph) {
     if (graph != nullptr) {
@@ -48,47 +40,18 @@ void projectA_delete_hash_graph(projectA_hash_graph_t* graph) {
 }
 
 
-// Function to append a node to a projectA_graph_t
-void projectA_graph_append_node(projectA_graph_t* graph, string id, uint32_t len, string seq) {
-
-    // Check if input seq matches the supposed length
-    if (len != seq.size()) {
-        cerr << "Error: sequence does not match sequence length!" << endl;
-        return;
-    }
-
-    // add the node
-    graph->id.push_back(id);
-    graph->len.push_back(len);
-    graph->seq.push_back(seq);
-
-    // increase the node count
-    graph->n_nodes++;
-}
-
-
-// Function to append an edge to a projectA_graph_t
-void projectA_graph_append_edge(projectA_graph_t* graph, string start, string end) {
-
-    // Initialize edge struct
-    projectA_edge_t edge;
-    edge.start = start;
-    edge.end = end;
-
-    // Append edge
-    graph->edges.push_back(edge);
-
-    // Increase the edge count
-    graph->n_edges++;
-}
-
 // Function to append a node to a projectA_hash_graph_t
 void projectA_hash_graph_append_node(projectA_hash_graph_t* graph, string id, uint32_t len, string& seq, uint32_t index) {
 
     // Check if input seq matches the supposed length
     if (len != seq.size()) {
         cerr << "Error: sequence does not match sequence length!" << endl;
-        return;
+        exit(1);
+    }
+    // Check if a node with this id already exists
+    if (graph->nodes.count(id)) {
+        cerr << "Error: node with id: " << id << " already exists!\n";
+        exit(1);
     }
 
     projectA_node_t* node = new projectA_node_t;
