@@ -129,7 +129,7 @@ projectA_alignment_t* projectA_gssw_graph_mapping_to_alignment(projectA_hash_gra
         auto& node_cigar = gm->cigar.elements[i];
 
         // Add node to the nodes vector
-        alignment->nodes.push_back(graph->nodes_in_order[node_cigar.node->id]);
+        alignment->nodes.push_back(graph->nodes_in_order[node_cigar.node->id]->id);
 
         // Add cigar to the cigars vector
         alignment->cigar.push_back(projectA_gssw_get_cigar(node_cigar.cigar));
@@ -209,7 +209,7 @@ void* projectA_gssw_calculate_batch(void* ptr) {
 
 
 // Function to handle post of gssw
-void projectA_gssw_post(void* ptr) {
+void projectA_gssw_post(void* ptr, vector<projectA_alignment_t*>& alignments) {
 
     if (ptr == nullptr) {
         cerr << "Error: input is nullptr!\n";
@@ -221,24 +221,16 @@ void projectA_gssw_post(void* ptr) {
     auto& parameters = input->parameters;
     auto& gms = input->gms;
 
-    vector<projectA_alignment_t*> alignments;
-
-
-    // TODO: Postprocessing data
-    for (auto& gm : gms) {
-        gssw_print_graph_mapping(gm, stderr);
-    }
-
+    // Iterate over all graph mappings
     for (int i = 0; i < gms.size(); ++i) {
 
-        // TODO Create output in algorithm struct & check output
+        // Add all alignments to the alignment vector
         alignments.push_back(projectA_gssw_graph_mapping_to_alignment(parameters[i].projectA_hash_graph, gms[i]));
     }
 
-
-
     // Free memory allocated for mappings
     for (auto& gm : gms) {
+        gssw_print_graph_mapping(gm, stderr);
         gssw_graph_mapping_destroy(gm);
     }
     gms.clear();

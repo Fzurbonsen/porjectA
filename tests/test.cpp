@@ -192,18 +192,19 @@ int main() {
     // fclose(file);
 
     void* ptr;
+    vector<projectA_alignment_t*> alignments_gt_gwfa;
 
-    // // Tests for gt_gwfa:
-    // cerr << "testing gt_gwfa!\n";
-    // projectA_algorithm_t* gt_gwfa = projectA_get_gt_gwfa();
-    // cerr << "loading inputs\n";
-    // ptr = gt_gwfa->init(graphs);
-    // cerr << "calculate batch\n";
-    // ptr = gt_gwfa->calculate_batch(ptr);
-    // cerr << "entering post\n";
-    // gt_gwfa->post(ptr);
-    // cerr << "destroying algorithm struct\n";
-    // projectA_gt_gwfa_destroy(gt_gwfa);
+    // Tests for gt_gwfa:
+    cerr << "testing gt_gwfa!\n";
+    projectA_algorithm_t* gt_gwfa = projectA_get_gt_gwfa();
+    cerr << "loading inputs\n";
+    ptr = gt_gwfa->init(graphs);
+    cerr << "calculate batch\n";
+    ptr = gt_gwfa->calculate_batch(ptr);
+    cerr << "entering post\n";
+    gt_gwfa->post(ptr, alignments_gt_gwfa);
+    cerr << "destroying algorithm struct\n";
+    projectA_gt_gwfa_destroy(gt_gwfa);
     
 
 
@@ -212,7 +213,7 @@ int main() {
 
 
 
-
+    vector<projectA_alignment_t*> alignments_gssw;
 
     // Tests for gssw:
     cerr << "testing gssw!" << endl;
@@ -222,14 +223,20 @@ int main() {
     cerr << "calculating batch\n";
     gssw->calculate_batch(ptr);
     cerr << "entering post\n";
-    gssw->post(ptr);
+    gssw->post(ptr, alignments_gssw);
     cerr << "destroying algorithm struct\n";
     projectA_gssw_destroy(gssw);
 
 
 
-
-
+    for (auto& alignment : alignments_gt_gwfa) {
+        projectA_print_alignment(stderr, alignment);
+        delete alignment;
+    }
+    for (auto& alignment : alignments_gssw) {
+        projectA_print_alignment(stderr, alignment);
+        delete alignment;
+    }
     for (auto& graph : graphs) {
         projectA_delete_hash_graph(graph.graph);
     }

@@ -588,3 +588,29 @@ void projectA_print_graph(FILE* file, projectA_hash_graph_t* graph) {
         }
     }
 }
+
+
+// Function to print alignment structs
+void projectA_print_alignment(FILE* file, projectA_alignment_t* alignment) {
+
+    // Print the score and offset in the first node
+    fprintf(file, "%i@%u:", alignment->score, alignment->offset);
+
+    // Iterate over all nodes
+    for (int i = 0; i < alignment->size; ++i) {
+
+        // Print the node id
+        fprintf(file, "%s[", alignment->nodes[i].c_str());
+
+        // Iterate over the cigar in the node
+        for (auto& cigar_element : alignment->cigar[i].elements) {
+
+            // Print cigar element
+            fprintf(file, "%i%c", cigar_element.len, cigar_element.type);
+        }
+
+        fprintf(file, "]");
+    }
+
+    fprintf(file, "\n");
+}

@@ -75,3 +75,11 @@ void projectA_read_node_list(vector<projectA_node_list_t>& node_lists, const str
 // POST:    file
 //      file:           The graph in graph is printed to file.
 void projectA_print_graph(FILE* file, projectA_hash_graph_t* graph);
+
+
+// PRE:     file, alignment
+//      file:           Valid pointer to an outpu file.
+//      alignment:      Valid pointer to a projectA_alignment_t.
+// POST:    file
+//      file:           The alignment is printed to the file.
+void projectA_print_alignment(FILE* file, projectA_alignment_t* alignment);

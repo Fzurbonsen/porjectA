@@ -82,6 +82,63 @@ gssw_graph* projectA_hash_graph_to_gt_gssw_graph(projectA_hash_graph_t* in_graph
 }
 
 
+// Function to convert gssw cigar to projectA cigar
+projectA_cigar_t projectA_gt_gwfa_get_cigar(gssw_cigar* cigar) {
+
+    projectA_cigar_t projectA_cigar;
+
+    // Copy cigar length
+    projectA_cigar.len = cigar->length;
+
+    // Reserve cigar size
+    projectA_cigar.elements.reserve(projectA_cigar.len);
+
+    // Iterate over cigar elements
+    for (int i = 0; i < projectA_cigar.len; ++i) {
+
+        projectA_cigar_element_t projectA_cigar_element;
+
+        // Copy cigar element
+        projectA_cigar_element.len = cigar->elements[i].length;
+        projectA_cigar_element.type = cigar->elements[i].type;
+
+        projectA_cigar.elements.push_back(projectA_cigar_element);
+    }
+
+    return projectA_cigar;
+}
+
+
+// Function to convert the gssw graph mapping to the projectA_alignment_t struct
+projectA_alignment_t* projectA_gt_gwfa_graph_mapping_to_alignment(projectA_hash_graph_t* graph, gssw_graph_mapping* gm) {
+
+    // Create new projectA_alignment_t
+    projectA_alignment_t* alignment = new projectA_alignment_t;
+
+    // Copy offset and score
+    alignment->offset = gm->position;
+    alignment->score = gm->score;
+    alignment->size = gm->cigar.length;
+
+    // Reserve memory for alignment vectors
+    alignment->nodes.reserve(alignment->size);
+    alignment->cigar.reserve(alignment->size);
+
+    // Iterate over the graph mapping graph cigar
+    for (int i = 0; i < alignment->size; ++i) {
+        auto& node_cigar = gm->cigar.elements[i];
+
+        // Add node to the nodes vector
+        alignment->nodes.push_back(graph->nodes_in_order[node_cigar.node->id]->id);
+
+        // Add cigar to the cigars vector
+        alignment->cigar.push_back(projectA_gt_gwfa_get_cigar(node_cigar.cigar));
+    }
+
+    return alignment;
+};
+
+
 // Function to initialize gt_gwfa
 void* projectA_gt_gwfa_init(vector<projectA_algorithm_input_t>& graphs) {
 
@@ -137,7 +194,7 @@ void* projectA_gt_gwfa_calculate_batch(void* ptr) {
 
 
 // Function to handle post of gt_gwfa
-void projectA_gt_gwfa_post(void* ptr) {
+void projectA_gt_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments) {
 
     if (ptr == nullptr) {
         cerr << "Error: input is nullptr!\n";

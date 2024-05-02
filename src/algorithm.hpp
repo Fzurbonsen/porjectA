@@ -12,6 +12,8 @@
 
 #include "graph.hpp"
 
+using namespace std;
+
 #ifndef PROJECTA_ALGORITHM_HPP
 #define PROJECTA_ALGORITHM_HPP
 
@@ -41,7 +43,7 @@ struct projectA_algorithm_t {
     // Void pointer that holds the function pointer to execute the post of the alignment.
     // This function gets passed the void* return from the calculate_batch function.
     // This funciont returns a vector that holds the results from the alignment.
-    void (*post)(void*);
+    void (*post)(void*, vector<projectA_alignment_t*>&);
 
 };
 

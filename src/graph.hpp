@@ -58,7 +58,7 @@ struct projectA_alignment_t {
     uint32_t offset; // Offset in the first node 
     int32_t score;  // Alignment score
     uint32_t size; // Number of nodes included in the alignment
-    vector<projectA_node_t*> nodes; // In order vector of nodes that are included in the alignment
+    vector<string> nodes; // In order vector of node ids that are included in the alignment
     vector<projectA_cigar_t> cigar; // Vector of cigar elements with position corresponing to nodes in the nodes vector
 };
 
