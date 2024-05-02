@@ -49,21 +49,30 @@ int main(int argc, char* argv[]) {
     vector<projectA_node_list_t> clusters;
     projectA_read_node_list(clusters, node_list_file);
 
+
     // Build graph form cluster information
-    vector<pair<const string, projectA_hash_graph_t*>> graphs;
+    vector<projectA_algorithm_input_t> graphs;
     projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
 
 
     // Run gssw
+    vector<projectA_alignment_t*> alignments_gssw;
     projectA_algorithm_t* gssw = projectA_get_gssw();
     void* ptr = gssw->init(graphs);
     gssw->calculate_batch(ptr);
-    gssw->post(ptr);
+    gssw->post(ptr, alignments_gssw);
     projectA_gssw_destroy(gssw);
+    for (auto& alignment : alignments_gssw) {
+        projectA_print_alignment(stderr, alignment);
+    }
+
 
     // Cleanup
+    for (auto& alignment : alignments_gssw) {
+        delete alignment;
+    }
     for (auto& graph : graphs) {
-        projectA_delete_hash_graph(graph.second);
+        projectA_delete_hash_graph(graph.graph);
     }
     projectA_delete_hash_graph(ref_graph);
     cerr << "run succesfull!\n";
