@@ -2,7 +2,7 @@
 
     projectA:
     graph.hpp
-    This file holds the definitions for the projectA graph structures and it's sub structs
+    This file holds the definitions for the projectA graph structures and its sub structs
     as well as helper functions to work with the structs.
     Author: Frederic zur Bonsen <fzurbonsen@student.ethz.ch>
 
@@ -19,19 +19,6 @@ using namespace std;
 #ifndef PROJECTA_GRAPH_HPP_STRUCTS
 #define PROJECTA_GRAPH_HPP_STRUCTS
 
-// Struct that holds a CIGAR element and how often it is repeated
-struct projectA_cigar_element_t {
-    uint32_t len; // Number of consecutive repetitions of the element
-    char type; // Type of the element
-};
-
-
-// Struct that holds a complete CIGAR, being an array of cigar elements
-struct projectA_cigar_t {
-    uint32_t len; // Number of CIGAR elements in the array
-    vector<projectA_cigar_element_t> elements; // Array of CIGAR elements
-};
-
 
 struct projectA_edge_t {
     string start; // Start index of the edge
@@ -45,21 +32,10 @@ struct projectA_node_t {
     uint32_t index; // Node index
     uint32_t len; // Node sequence length
     string seq; // Sequence stored in node
-    projectA_cigar_t cigar; // CIGAR corresponding to node
     vector<projectA_node_t*> next; // Next nodes
     vector<projectA_node_t*> prev; // Previous nodes
 
     bool visited = false; // Auxiliary bool used to speed up certain functions
-};
-
-
-// Struct to hold an alignment
-struct projectA_alignment_t {
-    uint32_t offset; // Offset in the first node 
-    int32_t score;  // Alignment score
-    uint32_t size; // Number of nodes included in the alignment
-    vector<string> nodes; // In order vector of node ids that are included in the alignment
-    vector<projectA_cigar_t> cigar; // Vector of cigar elements with position corresponing to nodes in the nodes vector
 };
 
 

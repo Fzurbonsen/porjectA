@@ -13,6 +13,8 @@
 #include "file_io.hpp"
 #include "graph.hpp"
 #include "algorithms/gssw.hpp"
+#include "alignment.hpp"
+
 
 int main(int argc, char* argv[]) {
 

@@ -11,6 +11,7 @@
 #include <string>
 
 #include "graph.hpp"
+#include "alignment.hpp"
 
 using namespace std;
 

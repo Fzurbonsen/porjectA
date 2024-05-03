@@ -230,7 +230,6 @@ void projectA_gssw_post(void* ptr, vector<projectA_alignment_t*>& alignments) {
 
     // Free memory allocated for mappings
     for (auto& gm : gms) {
-        gssw_print_graph_mapping(gm, stderr);
         gssw_graph_mapping_destroy(gm);
     }
     gms.clear();

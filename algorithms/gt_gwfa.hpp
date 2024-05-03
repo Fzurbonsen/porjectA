@@ -14,6 +14,8 @@
 #include "gt_gwfa/graphs.h"
 #include "algorithm.hpp"
 #include "graph.hpp"
+#include "alignment.hpp"
+
 
 using namespace std;
 
@@ -26,8 +28,11 @@ struct projectA_gt_gwfa_parameters_t {
     gwf_graph_t* gwf;
     const char* read;
 
+    projectA_hash_graph_t* projectA_hash_graph;
+
     // Constructor for projectA_gt_gwfa_t
-    projectA_gt_gwfa_parameters_t(gssw_graph* gssw, gwf_graph_t* gwf, const char* r);
+    projectA_gt_gwfa_parameters_t(gssw_graph* gssw, gwf_graph_t* gwf, const char* r,
+                                    projectA_hash_graph_t* projectA_hash_graph);
 };
 
 

@@ -21,8 +21,10 @@
 using namespace std;
 
 // Constructor for parameter struct
-projectA_gt_gwfa_parameters_t::projectA_gt_gwfa_parameters_t(gssw_graph* gssw , gwf_graph_t* gwf, const char* r) : 
-                                                                gssw(gssw), gwf(gwf), read(r) {}
+projectA_gt_gwfa_parameters_t::projectA_gt_gwfa_parameters_t(gssw_graph* gssw , gwf_graph_t* gwf, const char* r,
+                                                                projectA_hash_graph_t* projectA_hash_graph) : 
+                                                                gssw(gssw), gwf(gwf), read(r), 
+                                                                projectA_hash_graph(projectA_hash_graph) {}
 
 
 // Function to convert projectA_hash_graph_t into gssw_graph
@@ -45,7 +47,7 @@ gssw_graph* projectA_hash_graph_to_gt_gssw_graph(projectA_hash_graph_t* in_graph
     for (auto& curr : in_graph->nodes_in_order) {
 
         // Fill node
-        nodes[i] = (gssw_node*)gssw_node_create(NULL, curr->index, curr->seq.c_str(), nt_table, mat);
+        nodes[i] = (gssw_node*)gssw_node_create(NULL, i, curr->seq.c_str(), nt_table, mat);
 
         // Add to node map
         node_map[curr] = nodes[i];
@@ -155,7 +157,7 @@ void* projectA_gt_gwfa_init(vector<projectA_algorithm_input_t>& graphs) {
         gwf_graph_t* new_gwf = gt_gssw_to_gwf_direct(new_gssw);
 
         // Construct parameter entry
-        projectA_gt_gwfa_parameters_t entry(new_gssw, new_gwf, itr.read.c_str());
+        projectA_gt_gwfa_parameters_t entry(new_gssw, new_gwf, itr.read.c_str(), itr.graph);
 
         // Append entry to parameter vector
         out->parameters.push_back(entry);
@@ -207,10 +209,13 @@ void projectA_gt_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments)
     auto& gms = input->gms;
 
 
-    // TODO: Create usable results
-    for (auto& gm : gms) {
-        gssw_print_graph_mapping(gm, stderr);
+    // Iterate over all graph mappings
+    for (int i = 0; i < gms.size(); ++i) {
+
+        // Add all alignments to the alignment vector
+        alignments.push_back(projectA_gt_gwfa_graph_mapping_to_alignment(parameters[i].projectA_hash_graph, gms[i]));
     }
+
 
 
 

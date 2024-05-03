@@ -12,6 +12,8 @@
 #include "gssw/gssw.h"
 #include "algorithm.hpp"
 #include "graph.hpp"
+#include "alignment.hpp"
+
 
 using namespace std;
 

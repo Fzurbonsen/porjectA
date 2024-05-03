@@ -23,6 +23,7 @@
 #include "algorithm.hpp"
 #include "algorithms/gt_gwfa.hpp"
 #include "algorithms/gssw.hpp"
+#include "alignment.hpp"
 
 using namespace std;
 
@@ -175,7 +176,7 @@ int main() {
     projectA_index_hash_graph(ref_graph);
 
 
-    projectA_read_node_list(clusters, "./test_cases/tests.txt");
+    projectA_read_node_list(clusters, "./test_cases/node_list_small.txt");
     vector<projectA_algorithm_input_t> graphs;
     projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
 
@@ -206,6 +207,10 @@ int main() {
     cerr << "destroying algorithm struct\n";
     projectA_gt_gwfa_destroy(gt_gwfa);
     
+    // if (alignments_gt_gwfa.size() != graphs.size()) {
+    //     cerr << "Error: gt_gwfa size does not match grpah size.\t" << graphs.size() << " " << alignments_gt_gwfa.size() << endl;
+    //     exit(1);
+    // }
 
 
 
@@ -227,14 +232,27 @@ int main() {
     cerr << "destroying algorithm struct\n";
     projectA_gssw_destroy(gssw);
 
+    if (alignments_gssw.size() != graphs.size()) {
+        cerr << "Error: gssw size does not match grpah size.\t" << graphs.size() << " " << alignments_gssw.size() << endl;
+        exit(1);
+    }
+
+    int match = 0;
+    for (int i = 0; i < graphs.size(); ++i) {
+
+        match += projectA_compare_alignments(true, stderr, alignments_gssw[i], 
+                                                            alignments_gt_gwfa[i]);
+    }
+
+    cerr << match << " matches of " << graphs.size() << " alignments.\n";
 
 
     for (auto& alignment : alignments_gt_gwfa) {
-        projectA_print_alignment(stderr, alignment);
+        // projectA_print_alignment(stderr, alignment);
         delete alignment;
     }
     for (auto& alignment : alignments_gssw) {
-        projectA_print_alignment(stderr, alignment);
+        // projectA_print_alignment(stderr, alignment);
         delete alignment;
     }
     for (auto& graph : graphs) {
