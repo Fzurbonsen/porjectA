@@ -38,8 +38,9 @@ struct projectA_gt_gwfa_parameters_t {
 
 // Struct to hold the inputs and outputs for gt_gwfa
 struct projectA_gt_gwfa_io_t {
-    vector<projectA_gt_gwfa_parameters_t> parameters;
-    vector<gssw_graph_mapping*> gms;
+    vector<vector<projectA_gt_gwfa_parameters_t>> parameters;
+    vector<vector<gssw_graph_mapping*>> gms;
+    int32_t size;
 };
 
 
@@ -70,14 +71,14 @@ projectA_alignment_t* projectA_gt_gwfa_graph_mapping_to_alignment(projectA_hash_
 //                      to create the gt_gwfa structs needed for alignment.
 // POST:    return
 //      return:         Void pointer that holds the populated structs needed for alignment by gt_gwfa including reserved space for the results.
-void* projectA_gt_gwfa_init(vector<projectA_algorithm_input_t>& graphs);
+void* projectA_gt_gwfa_init(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads);
 
 
 // PRE:     ptr
 //      ptr:            Void pointer that holds the populated structs needed for alignment by gt_gwfa including reserved space for the results.
 // POST:    return
 //      return:         Void pointer that holds the results of the gt_gwfa alignment as well as the gssw structs needed for alignment.
-void* projectA_gt_gwfa_calcualte_batch(void* ptr);
+void* projectA_gt_gwfa_calcualte_batch(void* ptr, int32_t thread_index);
 
 
 // PRE:     ptr, alignments
@@ -85,7 +86,7 @@ void* projectA_gt_gwfa_calcualte_batch(void* ptr);
 //      alignments:     Reference to a vector of pointers to projectA alignment structs.
 // POST:    alignments
 //      alignments:     Reference to a vector of pointers to projectA alignment structs that hold the information about the performed alignment.
-void projectA_gt_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments);
+void projectA_gt_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments, int32_t numThreads);
 
 
 // PRE:     

@@ -1,6 +1,6 @@
 # Compiler
 CC = gcc
-CFLAGS = -g -Wall -O3
+CFLAGS = -g -Wall -O3 #-fsanitize=address
 
 # Directories
 SRC_DIR := src
@@ -18,7 +18,7 @@ EDLIB_DIR := deps/edlib
 CWD := $(shell pwd)
 
 # Library Flags
-LIB_FLAGS = -lz -lgssw -lgwfa -lm -ledlib -lstdc++
+LIB_FLAGS = -lz -lgssw -lgwfa -lm -ledlib -lstdc++ #-fsanitize=address
 LDFLAGS = -L/$(CWD)/$(LIB_DIR)
 # Include Flags
 INCLUDE_FLAGS := -I$(CWD)/$(INC_DIR) -isystem $(CWD)/$(INC_DIR) -I$(CWD)/$(SRC_DIR)

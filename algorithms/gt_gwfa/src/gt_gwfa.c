@@ -5,7 +5,9 @@ void gt_gwf_free(gwf_graph_t *g)
 {
 	int32_t i;
 	for (i = 0; i < g->n_vtx; ++i) free(g->seq[i]);
-	free(g->len); free(g->seq); free(g->arc); free(g->src); free(g); free(g->gssw_id);
+	free(g->len); free(g->seq); free(g->arc); free(g->src);
+    free(g->gssw_id);
+    free(g);
 }
 
 void gt_gwf_graph_print(FILE *fp, const gwf_graph_t *g)
@@ -696,35 +698,22 @@ void gt_print_graph_mapping(gssw_graph_mapping* gm) {
 
 // Create transfer CIGAR from gwfa to gssw
 gssw_graph_mapping* gt_gwf_traceback_to_gm(gwf_path_t *path, gwf_graph_t *graph, gssw_graph *gssw_g, const char* read) {
-
-    // Initialise values
     int32_t i, j, k, l;
     int32_t count, index_shift, position, position_buffer;
-    char* flattened_cigar;
-    char* aligned_seq =(char*)malloc(1);
+    char* flattened_cigar = NULL;
+    char* aligned_seq = (char*)malloc(1);
     char* curr_cigar_flattened = (char*)malloc(1);
-    char* substring;
+    char* substring = NULL;
     aligned_seq[0] = '\0';
     curr_cigar_flattened[0] = '\0';
-    
 
-
-    // Create gssw graph mapping to store the alignment
-    gssw_graph_mapping* gm = (gssw_graph_mapping*) malloc(sizeof(gssw_graph_mapping));
-
-    gm = gssw_graph_mapping_create();
-    
-    // causes crashes
+    gssw_graph_mapping* gm = gssw_graph_mapping_create();
     gssw_graph_cigar* gc = &gm->cigar;
-    gm->cigar.length = path->nv; // copy alignment node length
+    gm->cigar.length = path->nv;
     gssw_node_cigar* nc = gc->elements;
 
-    gm->score = path->s; // copy alignment score
+    gm->score = path->s;
 
-
-
-
-    // Iterate over nodes in path to construct alignment string
     for (i = 0; i < path->nv; i++) {
         int32_t curr_node = path->v[i];
         char* curr_seq = graph->seq[curr_node];
@@ -732,108 +721,77 @@ gssw_graph_mapping* gt_gwf_traceback_to_gm(gwf_path_t *path, gwf_graph_t *graph,
         strcat(aligned_seq, curr_seq);
     }
 
-    // Create CIGAR-string for entire alignment using edlibAlign
-    EdlibAlignResult result = edlibAlign(read, strlen(read), aligned_seq, strlen(aligned_seq),
-                                             edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+    EdlibAlignResult result = edlibAlign(read, strlen(read), aligned_seq, strlen(aligned_seq), edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
     char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
-    
     gm->position = result.startLocations[0];
     position = result.startLocations[0];
 
-
-    // Create flattened CIGAR-string
     flattened_cigar = gt_flatten_cigar(cigar);
-    
 
-    // // allocate memeory for graph cigar
     uint32_t graph_cigar_bufsize = 16;
-    gc->elements = NULL;
     gc->elements = (gssw_node_cigar*)malloc(graph_cigar_bufsize * sizeof(gssw_node_cigar));
     gc->length = 0;
 
-    // Iterate over nodes to asign cigar to nodes.
     for (i = 0, index_shift = 0; i < path->nv; i++) {
         count = 0;
         j = 0;
         position_buffer = 0;
         l = path->v[i];
 
-
-        // adjust for the start offset
         if (position > 0) {
-            
-            // offset only in current node
             if (position <= graph->len[l]) {
                 position_buffer = position;
                 position = 0;
-
-            // offset in following nodes
             } else {
-                position = position - graph->len[l];
-                j = 0;
+                position -= graph->len[l];
                 gm->position -= graph->len[l];
                 continue;
             }
         }
 
-        // double allocated memory for node cigars
         if (gc->length == graph_cigar_bufsize) {
-                graph_cigar_bufsize *= 2;
-                gc->elements = (gssw_node_cigar*)realloc((void*) gc->elements, graph_cigar_bufsize * sizeof(gssw_node_cigar));
+            graph_cigar_bufsize *= 2;
+            gc->elements = (gssw_node_cigar*)realloc(gc->elements, graph_cigar_bufsize * sizeof(gssw_node_cigar));
         }
 
         nc = gc->elements + gc->length;
 
-        // find the CIGAR-string segment
-        while (count < graph->len[l] - position_buffer && flattened_cigar[j] != '\0') {
-
-            // if the operation is a match or an insertion it is represented in the current string
+        while (count < graph->len[l] - position_buffer && flattened_cigar[index_shift + j] != '\0') {
             if (flattened_cigar[index_shift + j] == 'M' || flattened_cigar[index_shift + j] == 'I') {
                 count++;
             }
-
-            // increase counter for the length of the string 
             j++;
         }
 
-        // append additional deletes, etc. to CIGAR length
         while (flattened_cigar[index_shift + j] != 'M' && flattened_cigar[index_shift + j] != 'I' && flattened_cigar[index_shift + j] != '\0') {
             j++;
         }
 
-
-        // if we have reached the end of the cigar we do not add any further nodes to the graph mapping
         if (index_shift < strlen(flattened_cigar)) {
-
             if (j < 0) {
                 fprintf(stderr, "error: count per node < 0\n");
                 exit(1);
             }
 
-            // if the aligned sequence length in the node is 0 then we can skip the node
             if (j == 0 || position > 0) {
                 gm->position -= graph->len[l];
-
             } else {
-                // reallocate memory for substring
-                substring = NULL;
                 substring = (char*)malloc(j + 1);
 
-                // copy substring
+                if (index_shift + j > strlen(flattened_cigar)) {
+                    fprintf(stderr, "error: out of bounds access\n");
+                    exit(1);
+                }
+
                 for (k = 0; k < j; k++) {
                     substring[k] = flattened_cigar[index_shift + k];
                 }
                 substring[k] = '\0';
 
-                // allocate memeory for cigar struct and assign values
                 nc->cigar = (gssw_cigar*)calloc(1, sizeof(gssw_cigar));
                 gt_flattened_cigar_to_gm(substring, nc, l);
-
-                // link node with node cigar
                 nc->node = gssw_g->nodes[l];
 
-
-                // increse index_shift to the start of the next substring
                 index_shift += j;
                 gc->length++;
                 free(substring);
@@ -843,7 +801,7 @@ gssw_graph_mapping* gt_gwf_traceback_to_gm(gwf_path_t *path, gwf_graph_t *graph,
             break;
         }
     }
-    
+
     free(flattened_cigar);
     free(cigar);
     free(curr_cigar_flattened);

@@ -142,12 +142,24 @@ projectA_alignment_t* projectA_gt_gwfa_graph_mapping_to_alignment(projectA_hash_
 
 
 // Function to initialize gt_gwfa
-void* projectA_gt_gwfa_init(vector<projectA_algorithm_input_t>& graphs) {
+void* projectA_gt_gwfa_init(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
 
     // Create the io vectors for the gt_gwfa algorithm
     projectA_gt_gwfa_io_t* out = new projectA_gt_gwfa_io_t;
+    for (int i = 0; i < numThreads; ++i) {
+        vector<projectA_gt_gwfa_parameters_t> params;
+        vector<gssw_graph_mapping*> gms;
+        params.reserve(graphs.size()/numThreads);
+        gms.reserve(graphs.size()/numThreads);
+        out->parameters.push_back(params);
+        out->gms.push_back(gms);
+    }
+
+    // Assign size
+    out->size = graphs.size();
 
     // Iterate over the input graphs
+    int32_t thread_index = 0;
     for (auto& itr : graphs) {
 
         // Construct gssw graph
@@ -160,11 +172,11 @@ void* projectA_gt_gwfa_init(vector<projectA_algorithm_input_t>& graphs) {
         projectA_gt_gwfa_parameters_t entry(new_gssw, new_gwf, itr.read.c_str(), itr.graph);
 
         // Append entry to parameter vector
-        out->parameters.push_back(entry);
-    }
+        out->parameters[thread_index].push_back(entry);
 
-    // Reserve space for results
-    out->gms.reserve(out->parameters.size());
+        // Update thread index
+        thread_index = (thread_index == numThreads - 1) ? 0 : thread_index + 1;
+    }
 
     // Cast return value into void pointer
     return static_cast<void*>(out);
@@ -172,7 +184,7 @@ void* projectA_gt_gwfa_init(vector<projectA_algorithm_input_t>& graphs) {
 
 
 // Function to calculate a batch in gt_gwfa
-void* projectA_gt_gwfa_calculate_batch(void* ptr) {
+void* projectA_gt_gwfa_calculate_batch(void* ptr, int32_t thread_index) {
 
     if (ptr == nullptr) {
         cerr << "Error: input is nullptr!\n";
@@ -181,8 +193,8 @@ void* projectA_gt_gwfa_calculate_batch(void* ptr) {
 
     // Define and cast local variables
     auto input = static_cast<projectA_gt_gwfa_io_t*>(ptr);
-    auto& parameters = input->parameters;
-    auto& gms = input->gms;
+    auto& parameters = input->parameters[thread_index];
+    auto& gms = input->gms[thread_index];
 
     // Run gt_gwfa on every set of parameters
     for (int i = 0; i < parameters.size(); ++i) {
@@ -196,7 +208,7 @@ void* projectA_gt_gwfa_calculate_batch(void* ptr) {
 
 
 // Function to handle post of gt_gwfa
-void projectA_gt_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments) {
+void projectA_gt_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
 
     if (ptr == nullptr) {
         cerr << "Error: input is nullptr!\n";
@@ -205,35 +217,68 @@ void projectA_gt_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments)
 
     // Define and cast local variables
     auto input = static_cast<projectA_gt_gwfa_io_t*>(ptr);
-    auto& parameters = input->parameters;
-    auto& gms = input->gms;
+    auto& parameters_vec = input->parameters;
+    auto& gms_vec = input->gms;
 
+    // Iterate over all entries in the graph mapping vectors
+    int32_t thread_index = 0;
+    int32_t j = 0;
+    for (int i = 0; i < input->size; ++i) {
+        auto& gms = gms_vec[thread_index];
+        auto& parameters = parameters_vec[thread_index];
 
-    // Iterate over all graph mappings
-    for (int i = 0; i < gms.size(); ++i) {
+        // Check for out of bounds error
+        if (j >= gms.size() || j >= parameters.size()) {
+            cerr << "Error: The index is out of bound!\n";
+            cerr << "index: " << j << "\tin vector of the thread: " << thread_index << endl;
+            cerr << "at value: " << i << endl;
+            exit(1);
+        }
 
-        // Add all alignments to the alignment vector
-        alignments.push_back(projectA_gt_gwfa_graph_mapping_to_alignment(parameters[i].projectA_hash_graph, gms[i]));
+        alignments.push_back(projectA_gt_gwfa_graph_mapping_to_alignment(parameters[j].projectA_hash_graph, gms[j]));
+
+        // Update thread index
+        if (thread_index == numThreads - 1) {
+            thread_index = 0;
+            ++j;
+        } else {
+            ++thread_index;
+        }
     }
+
+
+    // // Iterate over all graph mappings
+    // for (int i = 0; i < gms.size(); ++i) {
+
+    //     // Add all alignments to the alignment vector
+    //     alignments.push_back(projectA_gt_gwfa_graph_mapping_to_alignment(parameters[i].projectA_hash_graph, gms[i]));
+    // }
 
 
 
 
     // Free memory allocated for mappings
-    for (auto& gm : gms) {
-        gssw_graph_mapping_destroy(gm);
+    for (auto& gms : gms_vec) {
+        for (auto& gm : gms) {
+            gssw_graph_mapping_destroy(gm);
+        }
+        gms.clear();
     }
-    gms.clear();
+    gms_vec.clear();
 
-    // Free memory allocated for parameters
-    for (auto& parameter : parameters) {
-        gssw_graph_destroy(parameter.gssw);
-        gt_gwf_free(parameter.gwf);
+     // Free memory allocated for parameters
+    for (auto& parameters : parameters_vec) {
+        for (auto& parameter : parameters) {
+            gssw_graph_destroy(parameter.gssw);
+            gt_gwf_free(parameter.gwf);
+        }
+        parameters.clear();
     }
-    parameters.clear();
+    parameters_vec.clear();
 
     // Free the input pointer itself
     delete input;
+    ptr = nullptr;
 }
 
 // Function to get the algorithm struct for gt_gwfa

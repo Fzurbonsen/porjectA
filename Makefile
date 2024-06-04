@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -g
+CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -g #-fsanitize=address
 TARGET = projectA
 TEST_TARGET = test
 CWD = $(shell pwd)
@@ -19,10 +19,10 @@ EXE = $(BIN_DIR)/$(TARGET)
 TEST_EXE = $(BIN_DIR)/$(TEST_TARGET)
 
 # Library flags
-LIB_FLAGS = -lz -lgssw -lm -lstdc++ -lgt_gwfa -lgwfa -ledlib
+LIB_FLAGS = -lz -lgssw -lm -lstdc++ -lgt_gwfa -lgwfa -ledlib #-fsanitize=address
 LDFLAGS = -L$(LIB_DIR)
 
-# Libraries
+# LibrariesF
 LIBS = $(LIB_DIR)/libgt_gwfa.a $(LIB_DIR)/libgssw.a
 
 # Source files

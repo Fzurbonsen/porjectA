@@ -140,10 +140,21 @@ projectA_alignment_t* projectA_gssw_graph_mapping_to_alignment(projectA_hash_gra
 
 
 // Function to initialize gssw
-void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs) {
+void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
 
     // Create our io vectors for the gssw algorithm
     projectA_gssw_io_t* out = new projectA_gssw_io_t;
+    for (int i = 0; i < numThreads; ++i) {
+        vector<projectA_gssw_parameters_t> params;
+        vector<gssw_graph_mapping*> gms;
+        params.reserve(graphs.size()/numThreads);
+        gms.reserve(graphs.size()/numThreads);
+        out->parameters.push_back(params);
+        out->gms.push_back(gms);
+    }
+
+    // Assign size
+    out->size = graphs.size();
 
     // Create the specifications for gssw.
     int8_t match = 1;
@@ -154,8 +165,8 @@ void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs) {
     int8_t* nt_table = gssw_create_nt_table();
     int8_t* mat = gssw_create_score_matrix(match, mismatch);
 
-
     // Iterate over the input graphs
+    int32_t thread_index = 0;
     for (auto& itr : graphs) {
         // Construct gssw graph
         gssw_graph* new_gssw = projectA_hash_graph_to_gssw_graph(itr.graph, nt_table, mat, gap_open, gap_extension);
@@ -164,11 +175,11 @@ void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs) {
         projectA_gssw_parameters_t entry(new_gssw, itr.read.c_str(), nt_table, mat, gap_open, gap_extension, itr.graph);
 
         // Append to parameter vector
-        out->parameters.push_back(entry);
+        out->parameters[thread_index].push_back(entry);
+        
+        // Update thread index
+        thread_index = (thread_index == numThreads - 1) ? 0 : thread_index + 1;
     }
-
-    // Reserve space for results
-    out->gms.reserve(out->parameters.size());
 
     // Cast return value into void pointer
     return static_cast<void*>(out);
@@ -176,7 +187,7 @@ void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs) {
 
 
 // Function to calculate a batch in gssw
-void* projectA_gssw_calculate_batch(void* ptr) {
+void* projectA_gssw_calculate_batch(void* ptr, int32_t thread_index) {
 
     if (ptr == nullptr) {
         cerr << "Error: input is nullptr!\n";
@@ -185,8 +196,8 @@ void* projectA_gssw_calculate_batch(void* ptr) {
 
     // Define and cast local variables
     auto input = static_cast<projectA_gssw_io_t*>(ptr);
-    auto& parameters = input->parameters;
-    auto& gms = input->gms;
+    auto& parameters = input->parameters[thread_index];
+    auto& gms = input->gms[thread_index];
 
     // Run gssw on every set of parameters
     for (int i = 0; i < parameters.size(); ++i) {
@@ -209,7 +220,7 @@ void* projectA_gssw_calculate_batch(void* ptr) {
 
 
 // Function to handle post of gssw
-void projectA_gssw_post(void* ptr, vector<projectA_alignment_t*>& alignments) {
+void projectA_gssw_post(void* ptr, vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
 
     if (ptr == nullptr) {
         cerr << "Error: input is nullptr!\n";
@@ -218,29 +229,54 @@ void projectA_gssw_post(void* ptr, vector<projectA_alignment_t*>& alignments) {
 
     // Define and cast local variables
     auto input = static_cast<projectA_gssw_io_t*>(ptr);
-    auto& parameters = input->parameters;
-    auto& gms = input->gms;
+    auto& parameters_vec = input->parameters;
+    auto& gms_vec = input->gms;
 
-    // Iterate over all graph mappings
-    for (int i = 0; i < gms.size(); ++i) {
+    // Iterate over all entries in the graph mapping vectors
+    int32_t thread_index = 0;
+    int32_t j = 0;
+    for (int i = 0; i < input->size; ++i) {
+        auto& gms = gms_vec[thread_index];
+        auto& parameters = parameters_vec[thread_index];
 
-        // Add all alignments to the alignment vector
-        alignments.push_back(projectA_gssw_graph_mapping_to_alignment(parameters[i].projectA_hash_graph, gms[i]));
+        // Check for out of bounds error
+        if (j >= gms.size() || j >= parameters.size()) {
+            cerr << "Error: The index is out of bound!\n";
+            cerr << "index: " << j << "\tin vector of the thread: " << thread_index << endl;
+            cerr << "at value: " << i << endl;
+            exit(1);
+        }
+
+        alignments.push_back(projectA_gssw_graph_mapping_to_alignment(parameters[j].projectA_hash_graph, gms[j]));
+
+        // Update thread index
+        if (thread_index == numThreads - 1) {
+            thread_index = 0;
+            ++j;
+        } else {
+            ++thread_index;
+        }
     }
 
     // Free memory allocated for mappings
-    for (auto& gm : gms) {
-        gssw_graph_mapping_destroy(gm);
+    for (auto& gms : gms_vec) {
+        for (auto& gm : gms) {
+            gssw_graph_mapping_destroy(gm);
+        }
+        gms.clear();
     }
-    gms.clear();
+    gms_vec.clear();
 
     // Free memory allocated for parameters
-    for (auto& parameter : parameters) {
-        gssw_graph_destroy(parameter.graph);
+    free(parameters_vec[0][0].nt_table);
+    free(parameters_vec[0][0].mat);
+    for (auto& parameters : parameters_vec) {
+        for (auto& parameter : parameters) {
+            gssw_graph_destroy(parameter.graph);
+        }
+        parameters.clear();
     }
-    free(parameters[0].nt_table);
-    free(parameters[0].mat);
-    parameters.clear();
+    parameters_vec.clear();
 
     // Delete the object that holds the inputs and outputs.
     delete input;
