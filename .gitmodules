@@ -1,3 +1,6 @@
 [submodule "algorithms/gssw"]
 	path = algorithms/gssw
 	url = https://github.com/vgteam/gssw.git
+[submodule "algorithms/gwfa"]
+	path = algorithms/gwfa
+	url = https://github.com/lh3/gwfa.git

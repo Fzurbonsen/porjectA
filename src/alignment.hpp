@@ -66,4 +66,9 @@ int  projectA_compare_alignments(bool print, FILE* file, projectA_alignment_t* a
                                                 projectA_alignment_t* alignment2);
 
 
+
+int projectA_compare_alignments_path(bool print, FILE* file, projectA_alignment_t* alignment1, 
+                                                            projectA_alignment_t* alignment2);
+
+
 #endif  //PROJECTA_ALIGNMENT_HPP

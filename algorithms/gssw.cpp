@@ -157,10 +157,10 @@ void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs, int32_t num
     out->size = graphs.size();
 
     // Create the specifications for gssw.
-    int8_t match = 1;
-    int8_t mismatch = 4;
-    uint8_t gap_open = 6;
-    uint8_t gap_extension = 1;
+    int8_t match = 0;
+    int8_t mismatch = 1;
+    uint8_t gap_open = 0;
+    uint8_t gap_extension = 0;
     gssw_sse2_disable();
     int8_t* nt_table = gssw_create_nt_table();
     int8_t* mat = gssw_create_score_matrix(match, mismatch);

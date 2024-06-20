@@ -24,6 +24,7 @@
 #include "algorithm.hpp"
 #include "algorithms/gt_gwfa.hpp"
 #include "algorithms/gssw.hpp"
+#include "algorithms/gwfa.hpp"
 #include "alignment.hpp"
 
 using namespace std;
@@ -92,6 +93,83 @@ int file_node_id_check (string graph_file, string cluster_file) {
 
 
 // Function to run the gssw algorithm
+vector<projectA_alignment_t*> projectA_get_alignment_gssw(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+    void* ptr2;
+    vector<projectA_alignment_t*> alignments_gssw;
+    vector<thread> threads;
+    
+    projectA_algorithm_t* gssw = projectA_get_gssw();
+    ptr2 = gssw->init(graphs, numThreads);
+    for (int i = 0; i < numThreads; ++i) {
+        threads.push_back(thread(gssw->calculate_batch, ptr2, i));
+    }
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
+    threads.clear();
+    gssw->post(ptr2, alignments_gssw, numThreads);
+    projectA_gssw_destroy(gssw);
+
+    return alignments_gssw;
+}
+
+
+// Function to run gt_gwfa algorithm
+vector<projectA_alignment_t*> projectA_get_alignment_gt_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+    void* ptr1;
+    vector<projectA_alignment_t*> alignments_gt_gwfa;
+    vector<thread> threads;
+
+    projectA_algorithm_t* gt_gwfa = projectA_get_gt_gwfa();
+    ptr1 = gt_gwfa->init(graphs, numThreads);
+    for (int i = 0; i < numThreads; ++i) {
+        threads.push_back(thread(gt_gwfa->calculate_batch, ptr1, i));
+    }
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
+    gt_gwfa->post(ptr1, alignments_gt_gwfa, numThreads);
+    projectA_gt_gwfa_destroy(gt_gwfa);
+
+    return alignments_gt_gwfa;
+}
+
+// Function to run gwfa algorithm
+vector<projectA_alignment_t*> projectA_get_alignment_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+    void* ptr;
+    vector<projectA_alignment_t*> alignments_gwfa; // Unused, in need of update
+    vector<thread> threads;
+    
+    // Get algorithm struct
+    projectA_algorithm_t* gwfa = projectA_get_gwfa();
+    
+    // Initialize data
+    ptr = gwfa->init(graphs, numThreads);
+    for (int i = 0; i < numThreads; ++i) {
+        threads.push_back(thread(gwfa->calculate_batch, ptr, i));
+    }
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
+
+    // gwfa post
+    gwfa->post(ptr, alignments_gwfa, numThreads);
+
+    // Destroy algorithm struct
+    projectA_gwfa_destroy(gwfa);
+
+    // Delete alignments
+    return alignments_gwfa;
+}
+
+
+// Function to run the gssw algorithm
 void projectA_run_gssw(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
     void* ptr2;
     vector<projectA_alignment_t*> alignments_gssw;
@@ -100,7 +178,6 @@ void projectA_run_gssw(vector<projectA_algorithm_input_t>& graphs, int32_t numTh
     projectA_algorithm_t* gssw = projectA_get_gssw();
     ptr2 = gssw->init(graphs, numThreads);
     for (int i = 0; i < numThreads; ++i) {
-        // gssw->calculate_batch(ptr2, i);
         threads.push_back(thread(gssw->calculate_batch, ptr2, i));
     }
     for (auto& th : threads) {
@@ -118,7 +195,8 @@ void projectA_run_gssw(vector<projectA_algorithm_input_t>& graphs, int32_t numTh
     }
 }
 
-// Function to run gt_gwfa algoritm
+
+// Function to run gt_gwfa algorithm
 void projectA_run_gt_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
     void* ptr1;
     vector<projectA_alignment_t*> alignments_gt_gwfa;
@@ -126,9 +204,7 @@ void projectA_run_gt_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t nu
 
     projectA_algorithm_t* gt_gwfa = projectA_get_gt_gwfa();
     ptr1 = gt_gwfa->init(graphs, numThreads);
-    // gt_gwfa->calculate_batch(ptr1, 0);
     for (int i = 0; i < numThreads; ++i) {
-        // gssw->calculate_batch(ptr2, i);
         threads.push_back(thread(gt_gwfa->calculate_batch, ptr1, i));
     }
     for (auto& th : threads) {
@@ -141,6 +217,39 @@ void projectA_run_gt_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t nu
 
     for (auto& alignment : alignments_gt_gwfa) {
         // projectA_print_alignment(stderr, alignment);
+        delete alignment;
+    }
+}
+
+
+// Function to run gwfa algorithm
+void projectA_run_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+    void* ptr;
+    vector<projectA_alignment_t*> alignments_gwfa; // Unused, in need of update
+    vector<thread> threads;
+    
+    // Get algorithm struct
+    projectA_algorithm_t* gwfa = projectA_get_gwfa();
+    
+    // Initialize data
+    ptr = gwfa->init(graphs, numThreads);
+    for (int i = 0; i < numThreads; ++i) {
+        threads.push_back(thread(gwfa->calculate_batch, ptr, i));
+    }
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
+
+    // gwfa post
+    gwfa->post(ptr, alignments_gwfa, numThreads);
+
+    // Destroy algorithm struct
+    projectA_gwfa_destroy(gwfa);
+
+    // Delete alignments
+    for (auto& alignment: alignments_gwfa) {
         delete alignment;
     }
 }
@@ -219,6 +328,7 @@ void timed_run_gt_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numTh
 
 
 
+
 int main() {
 
     vector<projectA_node_list_t> clusters;
@@ -234,7 +344,23 @@ int main() {
     //     projectA_print_graph(stderr, graph.graph);
     // }
 
+    vector<projectA_alignment_t*> alignments1 = projectA_get_alignment_gssw(graphs, 4);
+    // vector<projectA_alignment_t*> alignments2 = projectA_get_alignment_gt_gwfa(graphs, 1);
+    vector<projectA_alignment_t*> alignments3 = projectA_get_alignment_gwfa(graphs, 4);
 
+    int count = 0;
+    for (int i = 0; i < alignments1.size(); ++i) {
+        count += projectA_compare_alignments_path(false, stderr, alignments1[i], alignments3[i]);
+    }
+
+    for (auto& alignment : alignments1) {
+        delete alignment;
+    }
+    for (auto& alignment : alignments3) {
+        delete alignment;
+    }
+
+    cerr << count << "\t" << alignments1.size() << endl;
 
     // FILE* file = fopen("test.txt", "w");
     // for (auto& graph : graphs) {
@@ -242,27 +368,13 @@ int main() {
     // }
     // fclose(file);
 
-    timed_run_gssw(graphs, 1);
-    timed_run_gssw(graphs, 2);
-    timed_run_gssw(graphs, 4);
-    timed_run_gssw(graphs, 8);
-    timed_run_gssw(graphs, 16);
-    timed_run_gssw(graphs, 32);
-    timed_run_gssw(graphs, 64);
-    timed_run_gssw(graphs, 128);
-    timed_run_gssw(graphs, 256);
+    // projectA_run_gssw(graphs, 4);
+    // projectA_run_gt_gwfa(graphs, 4);
+    // projectA_run_gwfa(graphs, 4);
+
+    // timed_run_gssw(graphs, 1);
     // timed_run_gt_gwfa(graphs, 1);
-    // timed_run_gt_gwfa(graphs, 2);
-    // timed_run_gt_gwfa(graphs, 4);
-    // timed_run_gt_gwfa(graphs, 8);
-    // timed_run_gt_gwfa(graphs, 16);
-    // timed_run_gt_gwfa(graphs, 32);
-    // timed_run_gt_gwfa(graphs, 64);
-    // timed_run_gt_gwfa(graphs, 128);
-    // timed_run_gt_gwfa(graphs, 256);
-    // timed_run_gt_gwfa(graphs, 512);
-    // timed_run_gt_gwfa(graphs, 1024);
-    // timed_run_gt_gwfa(graphs, 2048);
+
 
 
     // if (alignments_gssw.size() != graphs.size()) {

@@ -120,3 +120,40 @@ int projectA_compare_alignments(bool print, FILE* file, projectA_alignment_t* al
     return 1;
 }
 
+
+// Function to compare the path of two alignments
+int projectA_compare_alignments_path(bool print, FILE* file, projectA_alignment_t* alignment1, 
+                                                            projectA_alignment_t* alignment2) {
+    
+    // If print is enabled we check wether the file pointer is valid
+    if (print && file == nullptr) {
+        cerr << "Error: invalid file pointer!\n";
+        exit(1);
+    }
+
+    int size = (alignment1->size < alignment2->size) ? alignment1->size : alignment2->size;
+    
+    // Iterate over the nodes and check whether they are the same
+    for (int i = 0; i < size; ++i) {
+        if (alignment1->nodes[i] != alignment2->nodes[i]) {
+
+            // If print is enabled we print the mismatch to file
+            if (print) {
+                fprintf(file, "Mismatched alignment:\n");
+                fprintf(file, "nodes\n");
+                fprintf(file, "\t");
+                projectA_print_alignment(file, alignment1);
+                fprintf(file, "\n\t");
+                projectA_print_alignment(file, alignment2);
+                fprintf(file, "\n");
+            }
+
+            cerr << alignment1->nodes[i] << "\t" << alignment2->nodes[i] << endl;
+
+            return 0;
+        }
+    }
+
+    return 1;
+}
+

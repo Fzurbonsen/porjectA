@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -g #-fsanitize=address
+CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -g -fsanitize=address
 TARGET = projectA
 TEST_TARGET = test
 CWD = $(shell pwd)
@@ -19,11 +19,11 @@ EXE = $(BIN_DIR)/$(TARGET)
 TEST_EXE = $(BIN_DIR)/$(TEST_TARGET)
 
 # Library flags
-LIB_FLAGS = -lz -lgssw -lm -lstdc++ -lgt_gwfa -lgwfa -ledlib #-fsanitize=address
+LIB_FLAGS = -lz -lgssw -lm -lstdc++ -lgt_gwfa -lgwfa -ledlib -fsanitize=address
 LDFLAGS = -L$(LIB_DIR)
 
 # LibrariesF
-LIBS = $(LIB_DIR)/libgt_gwfa.a $(LIB_DIR)/libgssw.a
+LIBS = $(LIB_DIR)/libgt_gwfa.a $(LIB_DIR)/libgssw.a $(LIB_DIR)/libgwfa.a
 
 # Source files
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
@@ -95,6 +95,7 @@ $(LIB_DIR)/libgt_gwfa.a:
 	@mkdir -p $(INC_DIR)/gt_gwfa
 	+ cd $(ALGO_DIR)/gt_gwfa && $(MAKE) && cp -r lib/* $(CWD)/lib && cp -r include/* $(INC_DIR)/gt_gwfa && cp -r src/*.h $(INC_DIR)/gt_gwfa
 	+ rm -rf $(LIB_DIR)/libgssw.a
+	+ rm -rf $(LIB_DIR)/libgwfa.a
 
 # Create gssw library
 $(LIB_DIR)/libgssw.a:
@@ -102,6 +103,13 @@ $(LIB_DIR)/libgssw.a:
 	@mkdir -p $(INC_DIR)
 	@mkdir -p $(INC_DIR)/gssw
 	+ cd $(ALGO_DIR)/gssw && $(MAKE) && cp -r lib/* $(CWD)/lib && cp -r src/*.h $(INC_DIR)/gssw && cp -r src/simde $(INC_DIR)/gssw
+
+# Create gwfa library
+$(LIB_DIR)/libgwfa.a:
+	@mkdir -p $(LIB_DIR)
+	@mkdir -p $(INC_DIR)
+	@mkdir -p $(INC_DIR)/gwfa
+	+ cd $(ALGO_DIR)/gwfa && cp -r *.h $(INC_DIR)/gwfa && $(MAKE) && ar rcs libgwfa.a gfa-base.o gfa-io.o gfa-sub.o gwf-ed.o kalloc.o && cp libgwfa.a $(LIB_DIR)
 
 
 run_tests:
@@ -112,5 +120,6 @@ clean:
 	@rm -rf $(OBJ_DIR) $(INC_DIR) $(BIN_DIR) $(LIB_DIR)
 	cd $(ALGO_DIR)/gt_gwfa && $(MAKE) clean
 	cd $(ALGO_DIR)/gssw && $(MAKE) clean
+	cd $(ALGO_DIR)/gwfa && $(MAKE) clean && rm -f libgwfa.a
 
 .PHONY: all clean copy_headers
