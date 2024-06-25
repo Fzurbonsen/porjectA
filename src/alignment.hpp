@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <set>
 #include <string>
+#include <algorithm>
 
 using namespace std;
 
@@ -31,7 +32,7 @@ struct projectA_cigar_element_t {
 // Struct that holds a complete CIGAR, being an array of cigar elements
 struct projectA_cigar_t {
     uint32_t len; // Number of CIGAR elements in the array
-    vector<projectA_cigar_element_t> elements; // Array of CIGAR elements
+    vector<projectA_cigar_element_t> elements; // Vector of CIGAR elements
 };
 
  
@@ -41,8 +42,26 @@ struct projectA_alignment_t {
     int32_t score;  // Alignment score
     uint32_t size; // Number of nodes included in the alignment
     vector<string> nodes; // In order vector of node ids that are included in the alignment
-    vector<projectA_cigar_t> cigar; // Vector of cigar elements with position corresponing to nodes in the nodes vector
+    vector<projectA_cigar_t> cigar; // Vector of CIGAR elements with position corresponing to nodes in the nodes vector
+    projectA_cigar_t cigar_string; // CIGAR over all nodes
 };
+
+
+
+// PRE:     cigar1, cigar2
+//      cigar1:         Pointer to a projectA CIGAR struct.
+//      cigar2:         Pointer to a projectA CIGAR struct.
+// POST:    return
+//      cigar1:         Pointer to concatenated CIGAR struct. 
+void projectA_concat_cigar(projectA_cigar_t* cigar1, projectA_cigar_t* cigar2);
+
+
+// PRE:     cigar1, cigar2
+//      cigar1:         Pointer to a projectA CIGAR struct.
+//      cigar2:         Pointer to a projectA CIGAR struct.
+// POST:    return
+//      return:         Double of the relative accuracy of the two CIGARs. 
+double projectA_cigar_accuracy(projectA_cigar_t* cigar1, projectA_cigar_t* cigar2);
 
 
 // PRE:     cigar1, cigar2
@@ -66,7 +85,15 @@ int  projectA_compare_alignments(bool print, FILE* file, projectA_alignment_t* a
                                                 projectA_alignment_t* alignment2);
 
 
-
+// PRE:     print, file, alignment1, alignment2
+//      print:          Boolean that indicates whether to print the results to file or not.
+//      file:           Pointer to a valid output file if print is enabled.
+//      alignment1:     Pointer to a valid projectA alignment struct.
+//      alignment2:     Pointer to a valid projectA alignment struct.
+// POST:    return, file
+//      return:         Integer that is one if the alignments match and zero if they don't.
+//      file:           Pointer to a valid output file that holds that holds the information to what
+//                      degree the two alignments match.
 int projectA_compare_alignments_path(bool print, FILE* file, projectA_alignment_t* alignment1, 
                                                             projectA_alignment_t* alignment2);
 

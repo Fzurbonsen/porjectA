@@ -19,6 +19,7 @@
 #include "gssw/gssw.h"
 #include "algorithm.hpp"
 #include "graph.hpp"
+#include "file_io.hpp"
 
 using namespace std;
 
@@ -87,23 +88,63 @@ projectA_cigar_t projectA_gssw_get_cigar(gssw_cigar* cigar) {
 
     projectA_cigar_t projectA_cigar;
 
-    // Copy cigar length
-    projectA_cigar.len = cigar->length;
-
-    // Reserve cigar size
-    projectA_cigar.elements.reserve(projectA_cigar.len);
-
     // Iterate over cigar elements
-    for (int i = 0; i < projectA_cigar.len; ++i) {
-
+    for (int i = 0; i < cigar->length; ++i) {
+        // Local variables
         projectA_cigar_element_t projectA_cigar_element;
 
-        // Copy cigar element
-        projectA_cigar_element.len = cigar->elements[i].length;
-        projectA_cigar_element.type = cigar->elements[i].type;
+        // Convert CIGAR elements
+        switch (cigar->elements[i].type) {
+            case 'I' :
+                projectA_cigar_element.type = 'I';
+                break;
+            case 'D' :
+                projectA_cigar_element.type = 'D';
+                break;
+            case 'M' : 
+                projectA_cigar_element.type = 'M';
+                break;
+            case 'X' :
+                projectA_cigar_element.type = 'M';
+                break;
+            case 'S' :
+                projectA_cigar_element.type = 'M';
+                break;
+            case 'N' :
+                projectA_cigar_element.type = 'N';
+                break;
+            default :
+                cerr << "Error: Invalid CIGAR element!\n";
+                cerr << "Element: " << cigar->elements[i].type << " not known!\n";
+                exit(1);
+        }
 
-        projectA_cigar.elements.push_back(projectA_cigar_element);
+        // Copy cigar length
+        projectA_cigar_element.len = cigar->elements[i].length;
+
+        if (projectA_cigar.elements.size() ==  0) {
+
+            // Push element to CIGAR vector
+            projectA_cigar.elements.push_back(projectA_cigar_element);
+
+        } else {
+
+            // Check if last element and current element are the same
+            if (projectA_cigar_element.type == projectA_cigar.elements.back().type) {
+
+                // Increase last element length
+                projectA_cigar.elements.back().len = projectA_cigar_element.len + projectA_cigar.elements.back().len;
+
+            } else {
+                
+                // Push element to CIGAR vector
+                projectA_cigar.elements.push_back(projectA_cigar_element);
+
+            }
+        }
     }
+
+    projectA_cigar.len = projectA_cigar.elements.size();
 
     return projectA_cigar;
 }
@@ -115,6 +156,10 @@ projectA_alignment_t* projectA_gssw_graph_mapping_to_alignment(projectA_hash_gra
     // Create new projectA_alignment_t
     projectA_alignment_t* alignment = new projectA_alignment_t;
 
+    // Prepare CIGAR string field
+    auto& cigar = alignment->cigar_string;
+    cigar.len = 0;
+
     // Copy offset and score
     alignment->offset = gm->position;
     alignment->score = gm->score;
@@ -124,15 +169,19 @@ projectA_alignment_t* projectA_gssw_graph_mapping_to_alignment(projectA_hash_gra
     alignment->nodes.reserve(alignment->size);
     alignment->cigar.reserve(alignment->size);
 
-    // Iterate over the graph mapping graph cigar
+    // Iterate over the graph mapping graph CIGAR
     for (int i = 0; i < alignment->size; ++i) {
         auto& node_cigar = gm->cigar.elements[i];
 
         // Add node to the nodes vector
         alignment->nodes.push_back(graph->nodes_in_order[node_cigar.node->id]->id);
 
-        // Add cigar to the cigars vector
-        alignment->cigar.push_back(projectA_gssw_get_cigar(node_cigar.cigar));
+        // Add CIGAR to the CIGARs vector
+        projectA_cigar_t new_cigar = projectA_gssw_get_cigar(node_cigar.cigar);
+        alignment->cigar.push_back(new_cigar);
+
+        // Add CIGAR to total CIGAR
+        projectA_concat_cigar(&cigar, &new_cigar);
     }
 
     return alignment;
@@ -157,10 +206,10 @@ void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs, int32_t num
     out->size = graphs.size();
 
     // Create the specifications for gssw.
-    int8_t match = 0;
-    int8_t mismatch = 1;
-    uint8_t gap_open = 0;
-    uint8_t gap_extension = 0;
+    int8_t match = 1;
+    int8_t mismatch = 5;
+    uint8_t gap_open = 1;
+    uint8_t gap_extension = 1;
     gssw_sse2_disable();
     int8_t* nt_table = gssw_create_nt_table();
     int8_t* mat = gssw_create_score_matrix(match, mismatch);

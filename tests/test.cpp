@@ -337,6 +337,8 @@ int main() {
 
 
     projectA_read_node_list(clusters, "./test_cases/node_list.txt");
+    // projectA_read_node_list(clusters, "./test_cases/node_list_small.txt");
+    // projectA_read_node_list(clusters, "./test_cases/tests.txt");
     vector<projectA_algorithm_input_t> graphs;
     projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
 
@@ -344,23 +346,28 @@ int main() {
     //     projectA_print_graph(stderr, graph.graph);
     // }
 
-    vector<projectA_alignment_t*> alignments1 = projectA_get_alignment_gssw(graphs, 4);
-    // vector<projectA_alignment_t*> alignments2 = projectA_get_alignment_gt_gwfa(graphs, 1);
-    vector<projectA_alignment_t*> alignments3 = projectA_get_alignment_gwfa(graphs, 4);
+    vector<projectA_alignment_t*> alignments1 = projectA_get_alignment_gssw(graphs, 8);
+    vector<projectA_alignment_t*> alignments2 = projectA_get_alignment_gt_gwfa(graphs, 8);
+    // vector<projectA_alignment_t*> alignments3 = projectA_get_alignment_gwfa(graphs, 8);
 
-    int count = 0;
+    double accuracy = 0;
     for (int i = 0; i < alignments1.size(); ++i) {
-        count += projectA_compare_alignments_path(false, stderr, alignments1[i], alignments3[i]);
+        // count += projectA_compare_alignments_path(false, stderr, alignments1[i], alignments2[i]);
+        // projectA_print_cigar(stderr, &alignments1[i]->cigar_string);
+        // projectA_print_cigar(stderr, &alignments2[i]->cigar_string);
+        // fprintf(stderr, "\n");
+        accuracy += projectA_cigar_accuracy(&alignments1[i]->cigar_string, &alignments2[i]->cigar_string);
     }
+
+    accuracy = accuracy / alignments1.size();
+    cerr << accuracy << endl;
 
     for (auto& alignment : alignments1) {
         delete alignment;
     }
-    for (auto& alignment : alignments3) {
+    for (auto& alignment : alignments2) {
         delete alignment;
     }
-
-    cerr << count << "\t" << alignments1.size() << endl;
 
     // FILE* file = fopen("test.txt", "w");
     // for (auto& graph : graphs) {

@@ -614,3 +614,20 @@ void projectA_print_alignment(FILE* file, projectA_alignment_t* alignment) {
 
     fprintf(file, "\n");
 }
+
+
+// Function to print cigar
+void projectA_print_cigar(FILE* file, projectA_cigar_t* cigar) {
+
+    // Print lenght
+    fprintf(file, "%i\t", cigar->len);
+    
+    // Iterate over all elements of the CIGAR
+    for (auto& cigar_element : cigar->elements) {
+        
+        // Print the CIGAR element
+        fprintf(file, "%i%c", cigar_element.len, cigar_element.type);
+    }
+
+    fprintf(file, "\n");
+}

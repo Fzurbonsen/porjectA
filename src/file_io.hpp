@@ -83,3 +83,11 @@ void projectA_print_graph(FILE* file, projectA_hash_graph_t* graph);
 // POST:    file
 //      file:           The alignment is printed to the file.
 void projectA_print_alignment(FILE* file, projectA_alignment_t* alignment);
+
+
+// PRE:     file, cigar
+//      file:           Valid pointer to an outpu file.
+//      cigar:          Valid pointer to a projectA_cigar_t.
+// POST:    file    
+//      file:           The cigar is printed to the file.
+void projectA_print_cigar(FILE* file, projectA_cigar_t* cigar);

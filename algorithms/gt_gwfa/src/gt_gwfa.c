@@ -721,7 +721,7 @@ gssw_graph_mapping* gt_gwf_traceback_to_gm(gwf_path_t *path, gwf_graph_t *graph,
         strcat(aligned_seq, curr_seq);
     }
 
-    EdlibAlignResult result = edlibAlign(read, strlen(read), aligned_seq, strlen(aligned_seq), edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+    EdlibAlignResult result = edlibAlign(read, strlen(read), aligned_seq, strlen(aligned_seq), edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
     char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
     gm->position = result.startLocations[0];
     position = result.startLocations[0];

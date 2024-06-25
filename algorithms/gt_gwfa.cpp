@@ -17,6 +17,7 @@
 #include "gt_gwfa/graphs.h"
 #include "algorithm.hpp"
 #include "graph.hpp"
+#include "file_io.hpp"
 
 using namespace std;
 
@@ -117,6 +118,10 @@ projectA_alignment_t* projectA_gt_gwfa_graph_mapping_to_alignment(projectA_hash_
     // Create new projectA_alignment_t
     projectA_alignment_t* alignment = new projectA_alignment_t;
 
+    // Prepare CIGAR string field
+    auto& cigar = alignment->cigar_string;
+    cigar.len = 0;
+
     // Copy offset and score
     alignment->offset = gm->position;
     alignment->score = gm->score;
@@ -126,15 +131,19 @@ projectA_alignment_t* projectA_gt_gwfa_graph_mapping_to_alignment(projectA_hash_
     alignment->nodes.reserve(alignment->size);
     alignment->cigar.reserve(alignment->size);
 
-    // Iterate over the graph mapping graph cigar
+    // Iterate over the graph mapping graph CIGAR
     for (int i = 0; i < alignment->size; ++i) {
         auto& node_cigar = gm->cigar.elements[i];
 
         // Add node to the nodes vector
         alignment->nodes.push_back(graph->nodes_in_order[node_cigar.node->id]->id);
 
-        // Add cigar to the cigars vector
-        alignment->cigar.push_back(projectA_gt_gwfa_get_cigar(node_cigar.cigar));
+        // Add CIGAR to the CIGARs vector
+        projectA_cigar_t new_cigar = projectA_gt_gwfa_get_cigar(node_cigar.cigar);
+        alignment->cigar.push_back(new_cigar);
+
+        // Add CIGAR to total CIGAR
+        projectA_concat_cigar(&cigar, &new_cigar);
     }
 
     return alignment;
@@ -245,17 +254,6 @@ void projectA_gt_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments,
             ++thread_index;
         }
     }
-
-
-    // // Iterate over all graph mappings
-    // for (int i = 0; i < gms.size(); ++i) {
-
-    //     // Add all alignments to the alignment vector
-    //     alignments.push_back(projectA_gt_gwfa_graph_mapping_to_alignment(parameters[i].projectA_hash_graph, gms[i]));
-    // }
-
-
-
 
     // Free memory allocated for mappings
     for (auto& gms : gms_vec) {

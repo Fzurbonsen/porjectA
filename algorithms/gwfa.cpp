@@ -152,7 +152,7 @@ void* projectA_gwfa_init(vector<projectA_algorithm_input_t>& graphs, int32_t num
     // Create the specifications for gwfa.
     int32_t v0 = 0;
     int32_t v1 = -1;
-    uint32_t max_lag = 0;
+    uint32_t max_lag = 1;
     int32_t traceback = 1;
 
     // Iterate over the input graphs
