@@ -103,10 +103,7 @@ gwf_graph_t* projectA_hash_graph_to_gwf_graph(projectA_hash_graph_t* in_graph) {
 
 
 // Function to convert path to alignment
-projectA_alignment_t* projectA_gwfa_path_to_alignment(projectA_hash_graph_t* graph, gwf_path_t* path) {
-
-    // Create new projectA_alignment_t
-    projectA_alignment_t* alignment = new projectA_alignment_t;
+void projectA_gwfa_path_to_alignment(projectA_hash_graph_t* graph, gwf_path_t* path, projectA_alignment_t* alignment) {
 
     // Copy alignment size
     alignment->size = path->nv;
@@ -121,14 +118,15 @@ projectA_alignment_t* projectA_gwfa_path_to_alignment(projectA_hash_graph_t* gra
 
         // Add node to the nodes vector
         alignment->nodes.push_back(graph->nodes_in_order[node]->id);
-    }
 
-    return alignment;
+        // Add sequence to referece sequence
+        alignment->reference = alignment->reference + graph->nodes_in_order[node]->seq;
+    }
 }
 
 
 // Function to initialize gwfa
-void* projectA_gwfa_init(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+void* projectA_gwfa_init(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
 
     // Create io vectors for the gwfa algorithm
     projectA_gwfa_io_t* out = new projectA_gwfa_io_t;
@@ -138,8 +136,8 @@ void* projectA_gwfa_init(vector<projectA_algorithm_input_t>& graphs, int32_t num
         vector<projectA_gwfa_path_t> paths;
 
         // Reserve memory
-        params.reserve(graphs.size()/numThreads);
-        paths.reserve(graphs.size()/numThreads);
+        params.reserve(alignments.size()/numThreads);
+        paths.reserve(alignments.size()/numThreads);
 
         // Push vectors to I/O struct
         out->parameters.push_back(params);
@@ -147,7 +145,7 @@ void* projectA_gwfa_init(vector<projectA_algorithm_input_t>& graphs, int32_t num
     }
 
     // Assign size
-    out->size =  graphs.size();
+    out->size =  alignments.size();
 
     // Create the specifications for gwfa.
     int32_t v0 = 0;
@@ -157,12 +155,12 @@ void* projectA_gwfa_init(vector<projectA_algorithm_input_t>& graphs, int32_t num
 
     // Iterate over the input graphs
     int32_t thread_index = 0;
-    for (auto& itr : graphs) {
+    for (auto& itr : alignments) {
         // Construct gwfa graph
-        gwf_graph_t* new_gwf_graph = projectA_hash_graph_to_gwf_graph(itr.graph);
+        gwf_graph_t* new_gwf_graph = projectA_hash_graph_to_gwf_graph(itr->graph);
 
         // Construct parameter entry
-        projectA_gwfa_parameters_t entry(km_init(), new_gwf_graph, itr.read.size(), itr.read.c_str(), v0, v1, max_lag, traceback, itr.graph);
+        projectA_gwfa_parameters_t entry(km_init(), new_gwf_graph, itr->read.size(), itr->read.c_str(), v0, v1, max_lag, traceback, itr->graph);
 
         // Append entry to parameter vector
         out->parameters[thread_index].push_back(entry);
@@ -244,7 +242,7 @@ void projectA_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments, in
         }
 
         // Push alignment to alignments vector
-        alignments.push_back(projectA_gwfa_path_to_alignment(parameters[j].projectA_hash_graph, &(paths[j].path)));
+        projectA_gwfa_path_to_alignment(parameters[j].projectA_hash_graph, &(paths[j].path), alignments[i]);
 
         // Update thread index
         if (thread_index == numThreads - 1) {

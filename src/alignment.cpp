@@ -11,6 +11,32 @@
 #include "file_io.hpp"
 
 
+// Function to parse CIGAR
+projectA_cigar_t projectA_parse_cigar_string(const string& cigar_str) {
+    projectA_cigar_t cigar;
+    istringstream iss(cigar_str);
+    string number;
+    
+    while (iss.good()) {
+        char ch = iss.get();
+        if (isdigit(ch)) {
+            number += ch;
+        } else {
+            if (!number.empty()) {
+                projectA_cigar_element_t elem;
+                elem.len = stoi(number);
+                elem.type = ch;
+                cigar.elements.push_back(elem);
+                number.clear();
+            }
+        }
+    }
+
+    cigar.len = cigar.elements.size();
+    return cigar;
+}
+
+
 // Function to concatenate two CIGARs
 void projectA_concat_cigar(projectA_cigar_t* cigar1, projectA_cigar_t* cigar2) {
 

@@ -69,7 +69,7 @@ gwf_graph_t* projectA_hash_graph_to_gwf_graph(projectA_hash_graph_t* in_graph);
 //                      to create the gssw structs needed for alignment.
 // POST:    return
 //      return:         Void pointer that holds the populated structs needed for alignment by gwfa including reserved space for the results.
-void* projectA_gwfa_init(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads);
+void* projectA_gwfa_init(vector<projectA_alignment_t*>& alignments, int32_t numThreads);
 
 
 // PRE:     ptr

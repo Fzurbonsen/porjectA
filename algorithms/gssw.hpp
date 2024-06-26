@@ -70,7 +70,7 @@ projectA_cigar_t projectA_gssw_get_cigar(gssw_cigar* cigar);
 //      gm:             Pointer to a valid gssw graph mapping on the input graph or a derivative of it graph.
 // POST:    retrun:
 //      return:         Pointer to a projectA alignment struct that holds the information of the gssw graph mapping.
-projectA_alignment_t* projectA_gssw_graph_mapping_to_alignment(projectA_hash_graph_t* graph, gssw_graph_mapping* gm);
+void projectA_gssw_graph_mapping_to_alignment(projectA_hash_graph_t* graph, gssw_graph_mapping* gm, projectA_alignment_t* alignment);
 
 
 
@@ -79,7 +79,7 @@ projectA_alignment_t* projectA_gssw_graph_mapping_to_alignment(projectA_hash_gra
 //                      to create the gssw structs needed for alignment.
 // POST:    return
 //      return:         Void pointer that holds the populated structs needed for alignment by gssw including reserved space for the results.
-void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads);
+void* projectA_gssw_init(vector<projectA_alignment_t*>& alignments, int32_t numThreads);
 
 
 // PRE:     ptr

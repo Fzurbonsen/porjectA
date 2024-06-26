@@ -27,6 +27,8 @@
 #include "algorithms/gwfa.hpp"
 #include "alignment.hpp"
 
+#include "gt_gwfa/edlib.h"
+
 using namespace std;
 
 
@@ -93,13 +95,12 @@ int file_node_id_check (string graph_file, string cluster_file) {
 
 
 // Function to run the gssw algorithm
-vector<projectA_alignment_t*> projectA_get_alignment_gssw(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+void projectA_get_alignment_gssw(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
     void* ptr2;
-    vector<projectA_alignment_t*> alignments_gssw;
     vector<thread> threads;
     
     projectA_algorithm_t* gssw = projectA_get_gssw();
-    ptr2 = gssw->init(graphs, numThreads);
+    ptr2 = gssw->init(alignments, numThreads);
     for (int i = 0; i < numThreads; ++i) {
         threads.push_back(thread(gssw->calculate_batch, ptr2, i));
     }
@@ -109,21 +110,18 @@ vector<projectA_alignment_t*> projectA_get_alignment_gssw(vector<projectA_algori
         }
     }
     threads.clear();
-    gssw->post(ptr2, alignments_gssw, numThreads);
+    gssw->post(ptr2, alignments, numThreads);
     projectA_gssw_destroy(gssw);
-
-    return alignments_gssw;
 }
 
 
 // Function to run gt_gwfa algorithm
-vector<projectA_alignment_t*> projectA_get_alignment_gt_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+void projectA_get_alignment_gt_gwfa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
     void* ptr1;
-    vector<projectA_alignment_t*> alignments_gt_gwfa;
     vector<thread> threads;
 
     projectA_algorithm_t* gt_gwfa = projectA_get_gt_gwfa();
-    ptr1 = gt_gwfa->init(graphs, numThreads);
+    ptr1 = gt_gwfa->init(alignments, numThreads);
     for (int i = 0; i < numThreads; ++i) {
         threads.push_back(thread(gt_gwfa->calculate_batch, ptr1, i));
     }
@@ -132,23 +130,20 @@ vector<projectA_alignment_t*> projectA_get_alignment_gt_gwfa(vector<projectA_alg
             th.join();
         }
     }
-    gt_gwfa->post(ptr1, alignments_gt_gwfa, numThreads);
+    gt_gwfa->post(ptr1, alignments, numThreads);
     projectA_gt_gwfa_destroy(gt_gwfa);
-
-    return alignments_gt_gwfa;
 }
 
 // Function to run gwfa algorithm
-vector<projectA_alignment_t*> projectA_get_alignment_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+void projectA_get_alignment_gwfa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
     void* ptr;
-    vector<projectA_alignment_t*> alignments_gwfa; // Unused, in need of update
     vector<thread> threads;
     
     // Get algorithm struct
     projectA_algorithm_t* gwfa = projectA_get_gwfa();
     
     // Initialize data
-    ptr = gwfa->init(graphs, numThreads);
+    ptr = gwfa->init(alignments, numThreads);
     for (int i = 0; i < numThreads; ++i) {
         threads.push_back(thread(gwfa->calculate_batch, ptr, i));
     }
@@ -159,24 +154,20 @@ vector<projectA_alignment_t*> projectA_get_alignment_gwfa(vector<projectA_algori
     }
 
     // gwfa post
-    gwfa->post(ptr, alignments_gwfa, numThreads);
+    gwfa->post(ptr, alignments, numThreads);
 
     // Destroy algorithm struct
     projectA_gwfa_destroy(gwfa);
-
-    // Delete alignments
-    return alignments_gwfa;
 }
 
 
 // Function to run the gssw algorithm
-void projectA_run_gssw(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+void projectA_run_gssw(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
     void* ptr2;
-    vector<projectA_alignment_t*> alignments_gssw;
     vector<thread> threads;
     
     projectA_algorithm_t* gssw = projectA_get_gssw();
-    ptr2 = gssw->init(graphs, numThreads);
+    ptr2 = gssw->init(alignments, numThreads);
     for (int i = 0; i < numThreads; ++i) {
         threads.push_back(thread(gssw->calculate_batch, ptr2, i));
     }
@@ -186,24 +177,18 @@ void projectA_run_gssw(vector<projectA_algorithm_input_t>& graphs, int32_t numTh
         }
     }
     threads.clear();
-    gssw->post(ptr2, alignments_gssw, numThreads);
+    gssw->post(ptr2, alignments, numThreads);
     projectA_gssw_destroy(gssw);
-
-    for (auto& alignment : alignments_gssw) {
-        // projectA_print_alignment(stderr, alignment);
-        delete alignment;
-    }
 }
 
 
 // Function to run gt_gwfa algorithm
-void projectA_run_gt_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+void projectA_run_gt_gwfa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
     void* ptr1;
-    vector<projectA_alignment_t*> alignments_gt_gwfa;
     vector<thread> threads;
 
     projectA_algorithm_t* gt_gwfa = projectA_get_gt_gwfa();
-    ptr1 = gt_gwfa->init(graphs, numThreads);
+    ptr1 = gt_gwfa->init(alignments, numThreads);
     for (int i = 0; i < numThreads; ++i) {
         threads.push_back(thread(gt_gwfa->calculate_batch, ptr1, i));
     }
@@ -212,27 +197,21 @@ void projectA_run_gt_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t nu
             th.join();
         }
     }
-    gt_gwfa->post(ptr1, alignments_gt_gwfa, numThreads);
+    gt_gwfa->post(ptr1, alignments, numThreads);
     projectA_gt_gwfa_destroy(gt_gwfa);
-
-    for (auto& alignment : alignments_gt_gwfa) {
-        // projectA_print_alignment(stderr, alignment);
-        delete alignment;
-    }
 }
 
 
 // Function to run gwfa algorithm
-void projectA_run_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+void projectA_run_gwfa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
     void* ptr;
-    vector<projectA_alignment_t*> alignments_gwfa; // Unused, in need of update
     vector<thread> threads;
     
     // Get algorithm struct
     projectA_algorithm_t* gwfa = projectA_get_gwfa();
     
     // Initialize data
-    ptr = gwfa->init(graphs, numThreads);
+    ptr = gwfa->init(alignments, numThreads);
     for (int i = 0; i < numThreads; ++i) {
         threads.push_back(thread(gwfa->calculate_batch, ptr, i));
     }
@@ -243,27 +222,21 @@ void projectA_run_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numTh
     }
 
     // gwfa post
-    gwfa->post(ptr, alignments_gwfa, numThreads);
+    gwfa->post(ptr, alignments, numThreads);
 
     // Destroy algorithm struct
     projectA_gwfa_destroy(gwfa);
-
-    // Delete alignments
-    for (auto& alignment: alignments_gwfa) {
-        delete alignment;
-    }
 }
 
 
 // Function to get a timed run of gssw
-void timed_run_gssw(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+void timed_run_gssw(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
     typedef std::chrono::high_resolution_clock Clock;
     void* ptr2;
-    vector<projectA_alignment_t*> alignments_gssw;
     vector<thread> threads;
     
     projectA_algorithm_t* gssw = projectA_get_gssw();
-    ptr2 = gssw->init(graphs, numThreads);
+    ptr2 = gssw->init(alignments, numThreads);
     auto t1 = Clock::now();
     for (int i = 0; i < numThreads; ++i) {
         // gssw->calculate_batch(ptr2, i);
@@ -276,33 +249,24 @@ void timed_run_gssw(vector<projectA_algorithm_input_t>& graphs, int32_t numThrea
     }
     threads.clear();
     auto t2 = Clock::now();
-    gssw->post(ptr2, alignments_gssw, numThreads);
+    gssw->post(ptr2, alignments, numThreads);
     projectA_gssw_destroy(gssw);
 
-    for (auto& alignment : alignments_gssw) {
-        // projectA_print_alignment(stderr, alignment);
-        delete alignment;
-    }
-    // auto t1 = Clock::now();
-    // projectA_run_gssw(graphs, numThreads);
-    // auto t2 = Clock::now();
     auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
     std::cerr << "gssw:\t" << "threads: " << numThreads << "\t" << duration1.count() << " ms\t" << endl;
 }
 
 
 // Function to get a timed run of gt_gwfa
-void timed_run_gt_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+void timed_run_gt_gwfa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
     typedef std::chrono::high_resolution_clock Clock;
     void* ptr1;
-    vector<projectA_alignment_t*> alignments_gt_gwfa;
     vector<thread> threads;
 
     projectA_algorithm_t* gt_gwfa = projectA_get_gt_gwfa();
-    ptr1 = gt_gwfa->init(graphs, numThreads);
+    ptr1 = gt_gwfa->init(alignments, numThreads);
     auto t3 = Clock::now();
     for (int i = 0; i < numThreads; ++i) {
-        // gssw->calculate_batch(ptr2, i);
         threads.push_back(thread(gt_gwfa->calculate_batch, ptr1, i));
     }
     for (auto& th : threads) {
@@ -311,17 +275,9 @@ void timed_run_gt_gwfa(vector<projectA_algorithm_input_t>& graphs, int32_t numTh
         }
     }
     auto t4 = Clock::now();
-    gt_gwfa->post(ptr1, alignments_gt_gwfa, numThreads);
+    gt_gwfa->post(ptr1, alignments, numThreads);
     projectA_gt_gwfa_destroy(gt_gwfa);
 
-    for (auto& alignment : alignments_gt_gwfa) {
-        // projectA_print_alignment(stderr, alignment);
-        delete alignment;
-    }
-  
-    // auto t3 = Clock::now();
-    // projectA_run_gt_gwfa(graphs, 1);
-    // auto t4 = Clock::now();
     auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
     std::cerr << "gt_gwfa:\t" << "threads: " << numThreads << "\t" << duration2.count() << " ms\t" << endl;
 }
@@ -342,17 +298,43 @@ int main() {
     vector<projectA_algorithm_input_t> graphs;
     projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
 
-    // for (auto& graph : graphs) {
-    //     projectA_print_graph(stderr, graph.graph);
-    // }
+    vector<projectA_alignment_t*> alignments1;
+    for (int32_t i = 0; i < graphs.size(); ++i) {
+        projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->graph = graphs[i].graph;
+        alignment->read = graphs[i].read;
+        alignments1.push_back(alignment);
+    }
+    vector<projectA_alignment_t*> alignments2;
+    for (int32_t i = 0; i < graphs.size(); ++i) {
+        projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->graph = graphs[i].graph;
+        alignment->read = graphs[i].read;
+        alignments2.push_back(alignment);
+    }
 
-    vector<projectA_alignment_t*> alignments1 = projectA_get_alignment_gssw(graphs, 8);
-    vector<projectA_alignment_t*> alignments2 = projectA_get_alignment_gt_gwfa(graphs, 8);
-    // vector<projectA_alignment_t*> alignments3 = projectA_get_alignment_gwfa(graphs, 8);
+
+    projectA_get_alignment_gssw(alignments2, 8);
+    // projectA_get_alignment_gt_gwfa(alignments2, 8);
+    projectA_get_alignment_gwfa(alignments1, 8);
+
+    for (auto& alignment : alignments1) {
+        EdlibAlignResult result = edlibAlign(alignment->read.c_str(), strlen(alignment->read.c_str()), 
+                                                alignment->reference.c_str(), strlen(alignment->reference.c_str()), 
+                                                edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
+        char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
+        string cigar_str = cigar;
+        free(cigar);
+        edlibFreeAlignResult(result);
+        alignment->cigar_string = projectA_parse_cigar_string(cigar_str);
+    }
+
+
 
     double accuracy = 0;
+    int count = 0;
     for (int i = 0; i < alignments1.size(); ++i) {
-        // count += projectA_compare_alignments_path(false, stderr, alignments1[i], alignments2[i]);
+        count += projectA_compare_alignments_path(false, stderr, alignments1[i], alignments2[i]);
         // projectA_print_cigar(stderr, &alignments1[i]->cigar_string);
         // projectA_print_cigar(stderr, &alignments2[i]->cigar_string);
         // fprintf(stderr, "\n");
@@ -361,6 +343,7 @@ int main() {
 
     accuracy = accuracy / alignments1.size();
     cerr << accuracy << endl;
+    cerr << count << "\t" << alignments1.size() << endl;
 
     for (auto& alignment : alignments1) {
         delete alignment;
@@ -369,43 +352,8 @@ int main() {
         delete alignment;
     }
 
-    // FILE* file = fopen("test.txt", "w");
-    // for (auto& graph : graphs) {
-    //     projectA_print_graph(file, graph.graph);
-    // }
-    // fclose(file);
-
-    // projectA_run_gssw(graphs, 4);
-    // projectA_run_gt_gwfa(graphs, 4);
-    // projectA_run_gwfa(graphs, 4);
-
-    // timed_run_gssw(graphs, 1);
-    // timed_run_gt_gwfa(graphs, 1);
 
 
-
-    // if (alignments_gssw.size() != graphs.size()) {
-    //     cerr << "Error: gssw size does not match grpah size.\t" << graphs.size() << " " << alignments_gssw.size() << endl;
-    //     exit(1);
-    // }
-
-    // int match = 0;
-    // for (int i = 0; i < graphs.size(); ++i) {
-
-    //     match += projectA_compare_alignments(true, stderr, alignments_gssw[i], 
-    //                                                         alignments_gt_gwfa[i]);
-    // }
-
-    // cerr << match << " matches of " << graphs.size() << " alignments.\n";
-
-    // for (auto& alignment : alignments_gt_gwfa) {
-    //     // projectA_print_alignment(stderr, alignment);
-    //     delete alignment;
-    // }
-    // for (auto& alignment : alignments_gssw) {
-    //     // projectA_print_alignment(stderr, alignment);
-    //     delete alignment;
-    // }
     for (auto& graph : graphs) {
         projectA_delete_hash_graph(graph.graph);
     }

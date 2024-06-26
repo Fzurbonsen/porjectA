@@ -14,6 +14,11 @@
 #include <set>
 #include <string>
 #include <algorithm>
+#include <iostream>
+#include <cctype>
+#include <sstream>
+
+#include "graph.hpp"
 
 using namespace std;
 
@@ -38,6 +43,12 @@ struct projectA_cigar_t {
  
 // Struct to hold an alignment
 struct projectA_alignment_t {
+    // Inputs
+    string read; // Read to be aligned
+    projectA_hash_graph_t* graph; // Graph on which to align the read
+    // Intermediate
+    string reference;
+    // Outputs
     uint32_t offset; // Offset in the first node 
     int32_t score;  // Alignment score
     uint32_t size; // Number of nodes included in the alignment
@@ -46,6 +57,12 @@ struct projectA_alignment_t {
     projectA_cigar_t cigar_string; // CIGAR over all nodes
 };
 
+
+// PRE:     cigar
+//      cigar:          String that holds a valid CIGAR
+// POST:    return
+//      return:         projectA_cigar_t struct that holds the CIGAR.
+projectA_cigar_t projectA_parse_cigar_string(const string& cigar_str);
 
 
 // PRE:     cigar1, cigar2

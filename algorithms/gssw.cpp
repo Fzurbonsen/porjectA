@@ -151,10 +151,7 @@ projectA_cigar_t projectA_gssw_get_cigar(gssw_cigar* cigar) {
 
 
 // Function to convert the gssw graph mapping to the projectA_alignment_t struct
-projectA_alignment_t* projectA_gssw_graph_mapping_to_alignment(projectA_hash_graph_t* graph, gssw_graph_mapping* gm) {
-
-    // Create new projectA_alignment_t
-    projectA_alignment_t* alignment = new projectA_alignment_t;
+void projectA_gssw_graph_mapping_to_alignment(projectA_hash_graph_t* graph, gssw_graph_mapping* gm, projectA_alignment_t* alignment) {
 
     // Prepare CIGAR string field
     auto& cigar = alignment->cigar_string;
@@ -183,31 +180,29 @@ projectA_alignment_t* projectA_gssw_graph_mapping_to_alignment(projectA_hash_gra
         // Add CIGAR to total CIGAR
         projectA_concat_cigar(&cigar, &new_cigar);
     }
-
-    return alignment;
 };
 
 
 // Function to initialize gssw
-void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs, int32_t numThreads) {
+void* projectA_gssw_init(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
 
     // Create our io vectors for the gssw algorithm
     projectA_gssw_io_t* out = new projectA_gssw_io_t;
     for (int i = 0; i < numThreads; ++i) {
         vector<projectA_gssw_parameters_t> params;
         vector<gssw_graph_mapping*> gms;
-        params.reserve(graphs.size()/numThreads);
-        gms.reserve(graphs.size()/numThreads);
+        params.reserve(alignments.size()/numThreads);
+        gms.reserve(alignments.size()/numThreads);
         out->parameters.push_back(params);
         out->gms.push_back(gms);
     }
 
     // Assign size
-    out->size = graphs.size();
+    out->size = alignments.size();
 
     // Create the specifications for gssw.
     int8_t match = 1;
-    int8_t mismatch = 5;
+    int8_t mismatch = 1;
     uint8_t gap_open = 1;
     uint8_t gap_extension = 1;
     gssw_sse2_disable();
@@ -216,12 +211,12 @@ void* projectA_gssw_init(vector<projectA_algorithm_input_t>& graphs, int32_t num
 
     // Iterate over the input graphs
     int32_t thread_index = 0;
-    for (auto& itr : graphs) {
+    for (auto& itr : alignments) {
         // Construct gssw graph
-        gssw_graph* new_gssw = projectA_hash_graph_to_gssw_graph(itr.graph, nt_table, mat, gap_open, gap_extension);
+        gssw_graph* new_gssw = projectA_hash_graph_to_gssw_graph(itr->graph, nt_table, mat, gap_open, gap_extension);
 
         // Construct parameter entry
-        projectA_gssw_parameters_t entry(new_gssw, itr.read.c_str(), nt_table, mat, gap_open, gap_extension, itr.graph);
+        projectA_gssw_parameters_t entry(new_gssw, itr->read.c_str(), nt_table, mat, gap_open, gap_extension, itr->graph);
 
         // Append to parameter vector
         out->parameters[thread_index].push_back(entry);
@@ -296,7 +291,8 @@ void projectA_gssw_post(void* ptr, vector<projectA_alignment_t*>& alignments, in
             exit(1);
         }
 
-        alignments.push_back(projectA_gssw_graph_mapping_to_alignment(parameters[j].projectA_hash_graph, gms[j]));
+        // Update alignments
+        projectA_gssw_graph_mapping_to_alignment(parameters[j].projectA_hash_graph, gms[j], alignments[i]);
 
         // Update thread index
         if (thread_index == numThreads - 1) {
