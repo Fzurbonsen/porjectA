@@ -12,6 +12,7 @@
 #include <utility>
 #include <unordered_map>
 #include <set>
+#include <tuple>
 #include <string>
 #include <algorithm>
 #include <iostream>
@@ -79,6 +80,23 @@ void projectA_concat_cigar(projectA_cigar_t* cigar1, projectA_cigar_t* cigar2);
 // POST:    return
 //      return:         Double of the relative accuracy of the two CIGARs. 
 double projectA_cigar_accuracy(projectA_cigar_t* cigar1, projectA_cigar_t* cigar2);
+
+
+// PRE:     nodes1, nodes2
+//      nodes1:         Reference to a vector of nodes.
+//      nodes2:         Reference to a vector of nodes.
+// POST:    return
+//      return:         Double of the relative accuracy of the two paths. 
+double projectA_path_accuracy(vector<string>& nodes1, vector<string>& nodes2);
+
+
+// PRE:     path, cutoff
+//      path:           Reference to a vector of strings that hold a node path.
+//      cutoff:         Reference to a string that indicates the cutoff node.
+// POST:    path
+//      path:           Reference to a vector of strings that hold a node path
+//                      that has been cut at cutoff if cutoff is reached.
+void projectA_cut_path(vector<string>& path, const string& cutoff);
 
 
 // PRE:     cigar1, cigar2

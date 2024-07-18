@@ -616,8 +616,10 @@ void projectA_print_alignment(FILE* file, projectA_alignment_t* alignment) {
 }
 
 
-// Function to print cigar
+// Function to print CIGAR
 void projectA_print_cigar(FILE* file, projectA_cigar_t* cigar) {
+
+    int32_t element_length = 0;
 
     // Print lenght
     fprintf(file, "%i\t", cigar->len);
@@ -627,7 +629,27 @@ void projectA_print_cigar(FILE* file, projectA_cigar_t* cigar) {
         
         // Print the CIGAR element
         fprintf(file, "%i%c", cigar_element.len, cigar_element.type);
+
+        // Increase element counter
+        element_length += cigar_element.len;
     }
 
-    fprintf(file, "\n");
+    fprintf(file, "\n%i\n\n", element_length);
+}
+
+
+// Function to print alignment path
+void projectA_print_path(FILE* file, vector<string>& path) {
+
+    // Print lenght
+    fprintf(file, "%i\t", path.size());
+
+    // Iterate over all nodes
+    for (auto& node : path) {
+
+        // Print the path id
+        fprintf(file, "[%s]->", node.c_str());
+    }
+
+    fprintf(file, "\n\n");
 }

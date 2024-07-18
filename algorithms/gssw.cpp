@@ -177,10 +177,13 @@ void projectA_gssw_graph_mapping_to_alignment(projectA_hash_graph_t* graph, gssw
         projectA_cigar_t new_cigar = projectA_gssw_get_cigar(node_cigar.cigar);
         alignment->cigar.push_back(new_cigar);
 
+        // Update reference string
+        alignment->reference = alignment->reference + node_cigar.node->seq;
+
         // Add CIGAR to total CIGAR
         projectA_concat_cigar(&cigar, &new_cigar);
     }
-};
+}
 
 
 // Function to initialize gssw
@@ -202,9 +205,9 @@ void* projectA_gssw_init(vector<projectA_alignment_t*>& alignments, int32_t numT
 
     // Create the specifications for gssw.
     int8_t match = 1;
-    int8_t mismatch = 1;
-    uint8_t gap_open = 1;
-    uint8_t gap_extension = 1;
+    int8_t mismatch = 1000;
+    uint8_t gap_open = 0;
+    uint8_t gap_extension = 1000;
     gssw_sse2_disable();
     int8_t* nt_table = gssw_create_nt_table();
     int8_t* mat = gssw_create_score_matrix(match, mismatch);

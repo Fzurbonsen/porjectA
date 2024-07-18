@@ -89,5 +89,13 @@ void projectA_print_alignment(FILE* file, projectA_alignment_t* alignment);
 //      file:           Valid pointer to an outpu file.
 //      cigar:          Valid pointer to a projectA_cigar_t.
 // POST:    file    
-//      file:           The cigar is printed to the file.
+//      file:           The CIGAR is printed to the file.
 void projectA_print_cigar(FILE* file, projectA_cigar_t* cigar);
+
+
+// PRE:     file, path
+//      file:           Valid pointer to an outpu file.
+//      path:           Reference to a vector of strings holding the node ids of the path.
+// POST:    file    
+//      file:           The path is printed to the file.
+void projectA_print_path(FILE* file, vector<string>& path);

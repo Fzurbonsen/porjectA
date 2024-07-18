@@ -113,7 +113,7 @@ void projectA_gwfa_path_to_alignment(projectA_hash_graph_t* graph, gwf_path_t* p
     alignment->cigar.reserve(alignment->size);
 
     // Iterate over the path
-    for (int i = 0; i < alignment->size; ++i) {
+    for (int i = 0; i < path->nv; ++i) {
         auto& node = path->v[i];
 
         // Add node to the nodes vector
@@ -150,7 +150,7 @@ void* projectA_gwfa_init(vector<projectA_alignment_t*>& alignments, int32_t numT
     // Create the specifications for gwfa.
     int32_t v0 = 0;
     int32_t v1 = -1;
-    uint32_t max_lag = 1;
+    uint32_t max_lag = 0;
     int32_t traceback = 1;
 
     // Iterate over the input graphs

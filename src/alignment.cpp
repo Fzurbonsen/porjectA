@@ -51,11 +51,11 @@ void projectA_concat_cigar(projectA_cigar_t* cigar1, projectA_cigar_t* cigar2) {
 
 
 // Function to generate aligned pairs
-set<int32_t> projectA_generate_aligned_positions(projectA_cigar_t* cigar) {
+set<tuple<int32_t, int32_t>> projectA_generate_aligned_positions(projectA_cigar_t* cigar) {
     // Variables to keep track of positions
     int32_t ref_pos = 0;
     int32_t query_pos = 0;
-    set<int32_t> aligned_positions;
+    set<tuple<int32_t, int32_t>> aligned_positions; // <reference position, query position>
 
     // Iterate over CIGAR
     for (auto& element : cigar->elements) {
@@ -67,7 +67,7 @@ set<int32_t> projectA_generate_aligned_positions(projectA_cigar_t* cigar) {
             case 'M' :
                 // Iterate over element length to add the positions to the set
                 for (int32_t i = 0; i < element.len; ++i) {
-                    aligned_positions.insert(ref_pos + i);
+                    aligned_positions.insert(make_tuple(ref_pos + i, query_pos + i));
                 }
                 ref_pos += element.len;
                 query_pos += element.len;
@@ -77,7 +77,7 @@ set<int32_t> projectA_generate_aligned_positions(projectA_cigar_t* cigar) {
             case 'I' :
                 // Iterate over element length to add the positions to the set
                 for (int32_t i = 0; i < element.len; ++i) {
-                    aligned_positions.insert(query_pos + i);
+                    aligned_positions.insert(make_tuple(ref_pos, query_pos + i));
                 }
                 query_pos += element.len;
                 break;
@@ -86,7 +86,7 @@ set<int32_t> projectA_generate_aligned_positions(projectA_cigar_t* cigar) {
             case 'D' :
                 // Iterate over element length to add the positions to the set
                 for (int32_t i = 0; i < element.len; ++i) {
-                    aligned_positions.insert(ref_pos + i);
+                    aligned_positions.insert(make_tuple(ref_pos + i, query_pos));
                 }
                 ref_pos += element.len;
                 break;
@@ -94,10 +94,11 @@ set<int32_t> projectA_generate_aligned_positions(projectA_cigar_t* cigar) {
             // Skipped region is only in the reference
             case 'N' :
                 // Iterate over element length to add the positions to the set
-                for (int32_t i = 0; i < element.len; ++i) {
-                    aligned_positions.insert(ref_pos + i);
-                }
+                // for (int32_t i = 0; i < element.len; ++i) {
+                //     aligned_positions.insert(make_tuple(ref_pos + i, query_pos + i));
+                // }
                 ref_pos += element.len;
+                query_pos += element.len;
                 break;
 
             default :
@@ -108,6 +109,21 @@ set<int32_t> projectA_generate_aligned_positions(projectA_cigar_t* cigar) {
     }
 
     return aligned_positions;
+}
+
+
+// Function to create sets of nodes from a path
+set<string> projectA_generate_aligned_nodes_set(vector<string>& nodes) {
+
+    // Initalize set
+    set<string> node_set;
+
+    // Iterate over all nodes in the nodes vector and add them to the set
+    for (auto& node : nodes) {
+        node_set.insert(node);
+    }
+
+    return node_set;
 }
 
 
@@ -127,10 +143,49 @@ double projectA_jaccard_index (set<int32_t>& set1, set<int32_t>& set2) {
 
 // Function to calculate the overlap of two CIGARs
 double projectA_cigar_accuracy(projectA_cigar_t* cigar1, projectA_cigar_t* cigar2) {
-    set<int32_t> aligned_positions1 = projectA_generate_aligned_positions(cigar1);
-    set<int32_t> aligned_positions2 = projectA_generate_aligned_positions(cigar2);
+    set<tuple<int32_t, int32_t>> aligned_positions1 = projectA_generate_aligned_positions(cigar1);
+    set<tuple<int32_t, int32_t>> aligned_positions2 = projectA_generate_aligned_positions(cigar2);
 
-    return projectA_jaccard_index(aligned_positions1, aligned_positions2);
+    // Calculate jaccard index
+    set<tuple<int32_t, int32_t>> intersection;
+    set<tuple<int32_t, int32_t>> union_set;
+
+    set_intersection(aligned_positions1.begin(), aligned_positions1.end(), aligned_positions2.begin(), aligned_positions2.end(),
+                        inserter(intersection, intersection.begin()));
+    set_union(aligned_positions1.begin(), aligned_positions1.end(), aligned_positions2.begin(), aligned_positions2.end(),
+                inserter(union_set, union_set.begin()));
+
+    return !union_set.empty() ? static_cast<double>(intersection.size()) / union_set.size() : 0.0;
+}
+
+
+// Function to calcualte the overlap of the paths of two alignments
+double projectA_path_accuracy(vector<string>& nodes1, vector<string>& nodes2) {
+    set<string> node_set1 = projectA_generate_aligned_nodes_set(nodes1);
+    set<string> node_set2 = projectA_generate_aligned_nodes_set(nodes2);
+
+    // Calculate jaccard index
+    set<string> intersection;
+    set<string> union_set;
+    set_intersection(node_set1.begin(), node_set1.end(), node_set2.begin(), node_set2.end(),
+                        inserter(intersection, intersection.begin()));
+    set_union(node_set1.begin(), node_set1.end(), node_set2.begin(), node_set2.end(),
+                inserter(union_set, union_set.begin()));
+
+    return !union_set.empty() ? static_cast<double>(intersection.size()) / union_set.size() : 0.0;
+}
+
+
+// Function to cut a path at a specific node, preserving the cutoff node
+void projectA_cut_path(vector<string>& path, const string& cutoff) {
+    // Find the position of the cutoff node
+    auto it = find(path.begin(), path.end(), cutoff);
+
+    // If the cutoff node is found and it's not the last element, erase from the next position to the end
+    if (it != path.end() && it + 1 != path.end()) {
+        path.erase(it + 1, path.end());
+    }
+    // If the cutoff node is the last element, nothing will be erased
 }
 
 
