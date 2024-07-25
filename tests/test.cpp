@@ -26,8 +26,11 @@
 #include "algorithms/gssw.hpp"
 #include "algorithms/gwfa.hpp"
 #include "alignment.hpp"
+#include "algorithms/ksw2.hpp"
+#include "algorithms/csswl.hpp"
 
 #include "gt_gwfa/edlib.h"
+
 
 using namespace std;
 
@@ -355,57 +358,86 @@ int main() {
     // projectA_get_alignment_gt_gwfa(alignments2, 8);
     projectA_get_alignment_gwfa(alignments2, 8);
 
-    // Truncate references for gwfa
-    for (int i = 0; i < alignments1.size(); ++i) {
-        int32_t element_length = 0;
-        // Iterate over all elements to get total element length
-        for (auto& element : alignments1[i]->cigar) {
-            element_length += element.len;
-        }
+    // // Truncate references for gwfa
+    // for (int i = 0; i < alignments1.size(); ++i) {
 
-        string new_reference;
-        projectA_get_gssw_reference(alignments1[i], new_reference);
 
-        alignments2[i]->reference = new_reference;
 
-        // alignments2[i]->reference = alignments2[i]->reference.substr(0, element_length);
-        // alignments2[i]->reference = "";
+    //     // int32_t element_length = 0;
+    //     // Iterate over all elements to get total element length
+    //     // for (auto& element : alignments1[i]->cigar) {
+    //     //     element_length += element.len;
+    //     // }
+
+    //     // alignments2[i]->reference = alignments2[i]->reference.substr(0, element_length);
+    //     // alignments2[i]->reference = "";
+
+
+    //     string new_reference;
+    //     projectA_get_gssw_reference(alignments1[i], new_reference);
+
+    //     alignments2[i]->reference = new_reference;
+    // }
+
+    for (int32_t i = 0; i < alignments2.size(); ++i) {
+        auto& alignment1 = alignments1[i];
+        auto& alignment2 = alignments2[i];
+
+        // EdlibAlignResult result1 = edlibAlign(alignment1->read.c_str(), strlen(alignment1->read.c_str()), 
+        //                                         alignment1->reference.c_str(), strlen(alignment1->reference.c_str()), 
+        //                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+        // char* cigar1 = edlibAlignmentToCigar(result1.alignment, result1.alignmentLength, EDLIB_CIGAR_STANDARD);
+        // string cigar_str1 = cigar1;
+        // free(cigar1);
+        // edlibFreeAlignResult(result1);
+        // alignment1->cigar_string = projectA_parse_cigar_string(cigar_str1);
+
+
+        // EdlibAlignResult result = edlibAlign(alignment1->read.c_str(), strlen(alignment1->read.c_str()), 
+        //                                         alignment1->reference.c_str(), strlen(alignment1->reference.c_str()), 
+        //                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+        // char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
+        // string cigar_str = cigar;
+        // free(cigar);
+        // edlibFreeAlignResult(result);
+        // alignment2->cigar_string = projectA_parse_cigar_string(cigar_str);
+
+        // // ksw2
+        // alignment2->reference = alignment1->reference;
+        // alignment2->read = alignment1->read;
+        // projectA_ksw2(alignment2);
+
+        // csswl
+        // alignment2->reference = alignment1->reference;
+        // alignment2->read = alignment1->read;
+        projectA_csswl(alignment2);
     }
 
-    // for (int32_t i = 0; i < alignments2.size(); ++i) {
-    //     auto& alignment1 = alignments1[i];
-    //     auto& alignment2 = alignments2[i];
-
-    //     // EdlibAlignResult result1 = edlibAlign(alignment1->read.c_str(), strlen(alignment1->read.c_str()), 
-    //     //                                         alignment1->reference.c_str(), strlen(alignment1->reference.c_str()), 
-    //     //                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
-    //     // char* cigar1 = edlibAlignmentToCigar(result1.alignment, result1.alignmentLength, EDLIB_CIGAR_STANDARD);
-    //     // string cigar_str1 = cigar1;
-    //     // free(cigar1);
-    //     // edlibFreeAlignResult(result1);
-    //     // alignment1->cigar_string = projectA_parse_cigar_string(cigar_str1);
-
-
-    //     EdlibAlignResult result = edlibAlign(alignment1->read.c_str(), strlen(alignment1->read.c_str()), 
-    //                                             alignment1->reference.c_str(), strlen(alignment1->reference.c_str()), 
-    //                                             edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+    // for (auto& alignment : alignments2) {
+    //     // edLib
+    //     EdlibAlignResult result = edlibAlign(alignment->read.c_str(), strlen(alignment->read.c_str()), 
+    //                                             alignment->reference.c_str(), strlen(alignment->reference.c_str()), 
+    //                                             edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
     //     char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
     //     string cigar_str = cigar;
     //     free(cigar);
     //     edlibFreeAlignResult(result);
-    //     alignment2->cigar_string = projectA_parse_cigar_string(cigar_str);
+    //     alignment->cigar_string = projectA_parse_cigar_string(cigar_str);
+
+    //     // ksw2
+    //     projectA_ksw2(alignment);
     // }
 
-    for (auto& alignment : alignments2) {
-        EdlibAlignResult result = edlibAlign(alignment->read.c_str(), strlen(alignment->read.c_str()), 
-                                                alignment->reference.c_str(), strlen(alignment->reference.c_str()), 
-                                                edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
-        char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
-        string cigar_str = cigar;
-        free(cigar);
-        edlibFreeAlignResult(result);
-        alignment->cigar_string = projectA_parse_cigar_string(cigar_str);
-    }
+    // for (auto& alignment : alignments2) {
+    //     EdlibAlignResult result = edlibAlign(alignment->reference.c_str(), strlen(alignment->reference.c_str()),
+    //                                             alignment->read.c_str(), strlen(alignment->read.c_str()), 
+    //                                             edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
+    //     char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
+    //     string cigar_str = cigar;
+    //     free(cigar);
+    //     edlibFreeAlignResult(result);
+    //     alignment->cigar_string = projectA_parse_cigar_string(cigar_str);
+    // }
 
 
     FILE* file = fopen("./files/CIGAR.txt", "w");
@@ -425,11 +457,28 @@ int main() {
         double acc = 0;
         acc = projectA_cigar_accuracy(&alignments1[i]->cigar_string, &alignments2[i]->cigar_string);
         cigar_accuracy += acc;
-        fprintf(file, "gssw:\t");
+        // fprintf(file, "gssw:\t");
+        // projectA_print_cigar(file, &alignments1[i]->cigar_string);
+        // fprintf(file, "gwfa:\t");
+        // projectA_print_cigar(file, &alignments2[i]->cigar_string);
+        // fprintf(file, "#accuracy:\t%f\n", acc);
+        // fprintf(file, "\n\n");
+
+        // Not readable by prepared python script
+        fprintf(file, "gssw:\t\n");
+        fprintf(file, "read:\t%s\n", alignments1[i]->read.c_str());
+        fprintf(file, "ref:\t%s\n", alignments1[i]->reference.c_str());
+        fprintf(file, "CIGAR:\t");
         projectA_print_cigar(file, &alignments1[i]->cigar_string);
-        fprintf(file, "gwfa:\t");
+
+        fprintf(file, "gwfa:\t\n");
+        fprintf(file, "read:\t%s\n", alignments2[i]->read.c_str());
+        fprintf(file, "ref:\t%s\n", alignments2[i]->reference.c_str());
+        fprintf(file, "CIGAR:\t");
         projectA_print_cigar(file, &alignments2[i]->cigar_string);
-        fprintf(file, "\n");
+        fprintf(file, "#accuracy:\t%f\n", acc);
+        fprintf(file, "\n\n");
+
 
         // fprintf(stderr, "accuracy:\t%f\n\n", acc);
 

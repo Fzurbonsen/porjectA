@@ -4,3 +4,9 @@
 [submodule "algorithms/gwfa"]
 	path = algorithms/gwfa
 	url = https://github.com/lh3/gwfa.git
+[submodule "algorithms/ksw2"]
+	path = algorithms/ksw2
+	url = https://github.com/lh3/ksw2.git
+[submodule "algorithms/csswl"]
+	path = algorithms/csswl
+	url = https://github.com/mengyao/Complete-Striped-Smith-Waterman-Library.git

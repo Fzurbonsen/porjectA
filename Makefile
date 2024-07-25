@@ -19,11 +19,11 @@ EXE = $(BIN_DIR)/$(TARGET)
 TEST_EXE = $(BIN_DIR)/$(TEST_TARGET)
 
 # Library flags
-LIB_FLAGS = -lz -lgssw -lm -lstdc++ -lgt_gwfa -lgwfa -ledlib -fsanitize=address
+LIB_FLAGS = -lz -lgssw -lm -lstdc++ -lgt_gwfa -lgwfa -ledlib -lksw2 -lcsswl -fsanitize=address
 LDFLAGS = -L$(LIB_DIR)
 
 # LibrariesF
-LIBS = $(LIB_DIR)/libgt_gwfa.a $(LIB_DIR)/libgssw.a $(LIB_DIR)/libgwfa.a
+LIBS = $(LIB_DIR)/libgt_gwfa.a $(LIB_DIR)/libgssw.a $(LIB_DIR)/libgwfa.a $(LIB_DIR)/libksw2.a $(LIB_DIR)/libcsswl.a
 
 # Source files
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
@@ -111,6 +111,19 @@ $(LIB_DIR)/libgwfa.a:
 	@mkdir -p $(INC_DIR)/gwfa
 	+ cd $(ALGO_DIR)/gwfa && cp -r *.h $(INC_DIR)/gwfa && $(MAKE) && ar rcs libgwfa.a gfa-base.o gfa-io.o gfa-sub.o gwf-ed.o kalloc.o && cp libgwfa.a $(LIB_DIR)
 
+# Create ksw2 library
+$(LIB_DIR)/libksw2.a:
+	@mkdir -p $(LIB_DIR)
+	@mkdir -p $(INC_DIR)
+	@mkdir -p $(INC_DIR)/ksw2
+	+ cd $(ALGO_DIR)/ksw2 && cp -r *.h $(INC_DIR)/ksw2 && $(MAKE) && ar rcs libksw2.a *.o && cp libksw2.a $(LIB_DIR)
+
+# Create csswl library
+$(LIB_DIR)/libcsswl.a:
+	@mkdir -p $(LIB_DIR)
+	@mkdir -p $(INC_DIR)
+	@mkdir -p $(INC_DIR)/csswl
+	+ cd $(ALGO_DIR)/csswl/src && cp -r *.h $(INC_DIR)/csswl && $(MAKE) && ar rcs libcsswl.a *.o && cp libcsswl.a $(LIB_DIR)
 
 run_tests:
 	$(shell $(TEST_EXE))
@@ -121,5 +134,7 @@ clean:
 	cd $(ALGO_DIR)/gt_gwfa && $(MAKE) clean
 	cd $(ALGO_DIR)/gssw && $(MAKE) clean
 	cd $(ALGO_DIR)/gwfa && $(MAKE) clean && rm -f libgwfa.a
+	cd $(ALGO_DIR)/ksw2 && $(MAKE) clean && rm -f libksw2.a
+	cd $(ALGO_DIR)/csswl/src && $(MAKE) clean && rm -f libcsswl.a
 
 .PHONY: all clean copy_headers

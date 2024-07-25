@@ -204,10 +204,14 @@ void* projectA_gssw_init(vector<projectA_alignment_t*>& alignments, int32_t numT
     out->size = alignments.size();
 
     // Create the specifications for gssw.
+    // int8_t match = 1;
+    // int8_t mismatch = 1000;
+    // uint8_t gap_open = 0;
+    // uint8_t gap_extension = 1000;
     int8_t match = 1;
-    int8_t mismatch = 1000;
-    uint8_t gap_open = 0;
-    uint8_t gap_extension = 1000;
+    int8_t mismatch = -2;
+    uint8_t gap_open = 2;
+    uint8_t gap_extension = 1;
     gssw_sse2_disable();
     int8_t* nt_table = gssw_create_nt_table();
     int8_t* mat = gssw_create_score_matrix(match, mismatch);
