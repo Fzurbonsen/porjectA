@@ -50,12 +50,14 @@ struct projectA_alignment_t {
     // Intermediate
     string reference;
     // Outputs
-    uint32_t offset; // Offset in the first node 
+    uint32_t offset; // Offset in the first node
     int32_t score;  // Alignment score
     uint32_t size; // Number of nodes included in the alignment
     vector<string> nodes; // In order vector of node ids that are included in the alignment
     vector<projectA_cigar_t> cigar; // Vector of CIGAR elements with position corresponing to nodes in the nodes vector
     projectA_cigar_t cigar_string; // CIGAR over all nodes
+
+    uint32_t read_start; // Offset in read for local alignment
 };
 
 

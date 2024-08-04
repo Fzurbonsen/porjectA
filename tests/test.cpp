@@ -110,7 +110,7 @@ void projectA_get_gssw_reference(projectA_alignment_t* alignment, string& refere
         // Swith case to differentiate between the different operations
         switch(element.type) {
 
-            // Match:
+            // Match
             case('M') :
                 pos += element.len;
                 break;
@@ -127,10 +127,81 @@ void projectA_get_gssw_reference(projectA_alignment_t* alignment, string& refere
     }
 
     // Cut the reference
-    reference = alignment->reference.substr(alignment->offset, pos);
+    reference = alignment->reference.substr(alignment->offset, pos - alignment->offset);
     // alignments2[i]->reference = alignments2[i]->reference.substr(0, element_length);
     // cerr << reference << endl;
-    // cerr << alignment->offset << "\t" << pos << endl << endl;
+    // cerr << alignment->offset << "\t" << pos << endl;
+    // cerr << pos - alignment->offset << "\t" << strlen(reference.c_str()) << endl;
+}
+
+
+// Function to get the aligned read from gssw
+void projectA_get_gssw_read(projectA_alignment_t* alignment, string& read) {
+    // Define local variables
+    auto& cigar = alignment->cigar_string;
+    int32_t pos = 0;
+
+    // Iterate over the CIGAR
+    for (int32_t i = 0; i < cigar.len; i++) {
+        auto& element = cigar.elements[i];
+
+        // Swith case to differentiate between the different operations
+        switch(element.type) {
+
+            // Match
+            case('M') :
+                pos += element.len;
+                break;
+
+            // Insertion
+            case('I') :
+                pos += element.len;
+                break;
+
+            // Default
+            default :
+                break;
+        }
+    }
+
+    // Cut the read
+    read = alignment->read.substr(0,pos);
+    // cerr << pos << endl;
+}
+
+
+// Function to get the aligned read from csswl
+void projectA_get_csswl_read(projectA_alignment_t* alignment, string& read) {
+    // Define local variables
+    auto& cigar = alignment->cigar_string;
+    int32_t pos = alignment->read_start;
+
+    // Iterate over the CIGAR
+    for (int32_t i = 0; i < cigar.len; i++) {
+        auto& element = cigar.elements[i];
+
+        // Swith case to differentiate between the different operations
+        switch(element.type) {
+
+            // Match
+            case('M') :
+                pos += element.len;
+                break;
+
+            // Insertion
+            case('I') :
+                pos += element.len;
+                break;
+
+            // Default
+            default :
+                break;
+        }
+    }
+
+    // Cut the read
+    read = alignment->read.substr(alignment->read_start, pos - alignment->read_start);
+    // cerr << alignment->read_start << "\t" << pos << endl;
 }
 
 
@@ -329,12 +400,14 @@ int main() {
 
     vector<projectA_node_list_t> clusters;
     projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/reference_graph.gfa");
+    // projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/linear_graph.gfa");
     projectA_index_hash_graph(ref_graph);
 
 
-    projectA_read_node_list(clusters, "./test_cases/node_list.txt");
-    // projectA_read_node_list(clusters, "./test_cases/node_list_small.txt");
+    // projectA_read_node_list(clusters, "./test_cases/node_list.txt");
+    projectA_read_node_list(clusters, "./test_cases/node_list_small.txt");
     // projectA_read_node_list(clusters, "./test_cases/tests.txt");
+    // projectA_read_node_list(clusters, "./test_cases/linear_node_list.txt");
     vector<projectA_algorithm_input_t> graphs;
     projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
 
@@ -358,30 +431,38 @@ int main() {
     // projectA_get_alignment_gt_gwfa(alignments2, 8);
     projectA_get_alignment_gwfa(alignments2, 8);
 
-    // // Truncate references for gwfa
-    // for (int i = 0; i < alignments1.size(); ++i) {
+    typedef std::chrono::high_resolution_clock Clock;
+
+    auto t0 = Clock::now();
+
+    // Truncate references for gwfa
+    for (int i = 0; i < alignments1.size(); ++i) {
+
+        // Strings to hold the cut reference and read
+        // string new_reference;
+        // string new_read;
+
+        // projectA_get_gssw_reference(alignments1[i], new_reference);
+        // projectA_get_gssw_read(alignments1[i], new_read);
+
+        // alignments2[i]->reference = new_reference;
+        // alignments2[i]->read = new_read;
+    }
 
 
-
-    //     // int32_t element_length = 0;
-    //     // Iterate over all elements to get total element length
-    //     // for (auto& element : alignments1[i]->cigar) {
-    //     //     element_length += element.len;
-    //     // }
-
-    //     // alignments2[i]->reference = alignments2[i]->reference.substr(0, element_length);
-    //     // alignments2[i]->reference = "";
-
-
-    //     string new_reference;
-    //     projectA_get_gssw_reference(alignments1[i], new_reference);
-
-    //     alignments2[i]->reference = new_reference;
-    // }
-
+    FILE* file_test = fopen("./files/CIGAR_gwfa.txt", "w");
     for (int32_t i = 0; i < alignments2.size(); ++i) {
         auto& alignment1 = alignments1[i];
         auto& alignment2 = alignments2[i];
+
+        string new_reference;
+        string new_read;
+
+        projectA_get_gssw_reference(alignment1, new_reference);
+        projectA_get_gssw_read(alignment1, new_read);
+
+        alignment2->reference = new_reference;
+        alignment2->read = new_read;
 
         // EdlibAlignResult result1 = edlibAlign(alignment1->read.c_str(), strlen(alignment1->read.c_str()), 
         //                                         alignment1->reference.c_str(), strlen(alignment1->reference.c_str()), 
@@ -392,26 +473,42 @@ int main() {
         // edlibFreeAlignResult(result1);
         // alignment1->cigar_string = projectA_parse_cigar_string(cigar_str1);
 
+        // csswl
+        // alignment2->reference = alignment1->reference;
+        // alignment2->read = alignment1->read;
+        // projectA_csswl(alignment2);
 
-        // EdlibAlignResult result = edlibAlign(alignment1->read.c_str(), strlen(alignment1->read.c_str()), 
-        //                                         alignment1->reference.c_str(), strlen(alignment1->reference.c_str()), 
-        //                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
-        // char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
-        // string cigar_str = cigar;
-        // free(cigar);
-        // edlibFreeAlignResult(result);
-        // alignment2->cigar_string = projectA_parse_cigar_string(cigar_str);
+        // // recut read
+        // string new_read;
+        // projectA_get_csswl_read(alignment2, new_read);
+        // alignment2->read = new_read;
+
+
+        // edLib
+        EdlibAlignResult result = edlibAlign(alignment2->read.c_str(), strlen(alignment2->read.c_str()), 
+                                                alignment2->reference.c_str(), strlen(alignment2->reference.c_str()), 
+                                                edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
+        char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
+        string cigar_str = cigar;
+        free(cigar);
+        edlibFreeAlignResult(result);
+        alignment2->cigar_string = projectA_parse_cigar_string(cigar_str);
+        alignment2->offset = 0;
+        fprintf(file_test, "ref:\t%s\nread:\t%s\nCIGAR:\t%s\n", alignment2->reference.c_str(), alignment2->read.c_str(), cigar_str.c_str());
+        fprintf(file_test, "\n");
 
         // // ksw2
         // alignment2->reference = alignment1->reference;
         // alignment2->read = alignment1->read;
         // projectA_ksw2(alignment2);
+        // alignment2->offset = 0;
 
-        // csswl
-        // alignment2->reference = alignment1->reference;
-        // alignment2->read = alignment1->read;
-        projectA_csswl(alignment2);
     }
+    fclose(file_test);
+    auto t1 = Clock::now();
+
+
+
 
     // for (auto& alignment : alignments2) {
     //     // edLib
@@ -423,9 +520,11 @@ int main() {
     //     free(cigar);
     //     edlibFreeAlignResult(result);
     //     alignment->cigar_string = projectA_parse_cigar_string(cigar_str);
+    //     alignment->offset = 0;
 
     //     // ksw2
     //     projectA_ksw2(alignment);
+    //     alignment->offset = 0;
     // }
 
     // for (auto& alignment : alignments2) {
@@ -437,6 +536,7 @@ int main() {
     //     free(cigar);
     //     edlibFreeAlignResult(result);
     //     alignment->cigar_string = projectA_parse_cigar_string(cigar_str);
+    //     alignment->offset = 0;
     // }
 
 
@@ -457,27 +557,37 @@ int main() {
         double acc = 0;
         acc = projectA_cigar_accuracy(&alignments1[i]->cigar_string, &alignments2[i]->cigar_string);
         cigar_accuracy += acc;
-        // fprintf(file, "gssw:\t");
+        fprintf(file, "gssw:\t");
+        fprintf(file, "%i\t", alignments1[i]->offset);
+        projectA_print_cigar(file, &alignments1[i]->cigar_string);
+        fprintf(file, "read:\t%s\n", alignments1[i]->read.c_str());
+        fprintf(file, "ref:\t%s\n", alignments1[i]->reference.c_str());
+        
+
+        fprintf(file, "gwfa:\t");
+        fprintf(file, "%i\t", alignments2[i]->offset);
+        projectA_print_cigar(file, &alignments2[i]->cigar_string);
+        fprintf(file, "read:\t%s\n", alignments2[i]->read.c_str());
+        fprintf(file, "ref:\t%s\n", alignments2[i]->reference.c_str());
+
+        
+        fprintf(file, "#accuracy:\t%f\n", acc);
+        fprintf(file, "\n\n");
+
+        // // Not readable by prepared python script
+        // fprintf(file, "gssw:\t\n");
+        // fprintf(file, "read:\t%s\n", alignments1[i]->read.c_str());
+        // fprintf(file, "ref:\t%s\n", alignments1[i]->reference.c_str());
+        // fprintf(file, "CIGAR:\t");
         // projectA_print_cigar(file, &alignments1[i]->cigar_string);
-        // fprintf(file, "gwfa:\t");
+
+        // fprintf(file, "gwfa:\t\n");
+        // fprintf(file, "read:\t%s\n", alignments2[i]->read.c_str());
+        // fprintf(file, "ref:\t%s\n", alignments2[i]->reference.c_str());
+        // fprintf(file, "CIGAR:\t");
         // projectA_print_cigar(file, &alignments2[i]->cigar_string);
         // fprintf(file, "#accuracy:\t%f\n", acc);
         // fprintf(file, "\n\n");
-
-        // Not readable by prepared python script
-        fprintf(file, "gssw:\t\n");
-        fprintf(file, "read:\t%s\n", alignments1[i]->read.c_str());
-        fprintf(file, "ref:\t%s\n", alignments1[i]->reference.c_str());
-        fprintf(file, "CIGAR:\t");
-        projectA_print_cigar(file, &alignments1[i]->cigar_string);
-
-        fprintf(file, "gwfa:\t\n");
-        fprintf(file, "read:\t%s\n", alignments2[i]->read.c_str());
-        fprintf(file, "ref:\t%s\n", alignments2[i]->reference.c_str());
-        fprintf(file, "CIGAR:\t");
-        projectA_print_cigar(file, &alignments2[i]->cigar_string);
-        fprintf(file, "#accuracy:\t%f\n", acc);
-        fprintf(file, "\n\n");
 
 
         // fprintf(stderr, "accuracy:\t%f\n\n", acc);
@@ -490,12 +600,15 @@ int main() {
     }
     fclose(file);
 
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
+
     // Print result values to console
     cigar_accuracy = cigar_accuracy / alignments1.size();
     node_accuracy = node_accuracy / alignments1.size();
     cerr << cigar_accuracy << "\t";
     cerr << node_accuracy;
     cerr << endl;
+    cerr << "S2S runtime:\t" << duration.count() << endl;
     // cerr << count << "\t" << alignments1.size() << endl;
 
     for (auto& alignment : alignments1) {
