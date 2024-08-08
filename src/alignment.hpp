@@ -38,6 +38,7 @@ struct projectA_cigar_element_t {
 // Struct that holds a complete CIGAR, being an array of cigar elements
 struct projectA_cigar_t {
     uint32_t len; // Number of CIGAR elements in the array
+    int32_t operations_length; // Number of operations in the CIGAR
     vector<projectA_cigar_element_t> elements; // Vector of CIGAR elements
 };
 
@@ -58,6 +59,8 @@ struct projectA_alignment_t {
     projectA_cigar_t cigar_string; // CIGAR over all nodes
 
     uint32_t read_start; // Offset in read for local alignment
+    int32_t n_matches; // Number of matches in the CIGAR
+    int32_t n_mismatches; // Number of mismatches in the CIGAR
 };
 
 

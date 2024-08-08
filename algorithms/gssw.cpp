@@ -83,6 +83,43 @@ gssw_graph* projectA_hash_graph_to_gssw_graph(projectA_hash_graph_t* in_graph, i
 }
 
 
+// Function to count number of matches, mismatches, insertions, deletions, non-aligned
+void procetA_gssw_count_cigar_op(gssw_cigar* cigar, int32_t& matches, int32_t& mismatches,
+                                                    int32_t& insertions, int32_t& deletions,
+                                                    int32_t& length) {
+
+    // Iterate over cigar elements
+    for (int32_t i = 0; i < cigar->length; ++i) {
+        
+        // Switch case to distinguish the operations
+        switch (cigar->elements[i].type) {
+            case 'I' :
+                insertions += cigar->elements[i].length;
+                break;
+            case 'D' :
+                deletions += cigar->elements[i].length;
+                break;
+            case 'M' : 
+                matches += cigar->elements[i].length;
+                break;
+            case 'X' :
+                mismatches += cigar->elements[i].length;
+                break;
+            case 'S' :
+                break;
+            case 'N' :
+                break;
+            default :
+                cerr << "Error: Invalid CIGAR element!\n";
+                cerr << "Element: " << cigar->elements[i].type << " not known!\n";
+                exit(1);
+        }
+        length += cigar->elements[i].length;
+    }
+
+
+}
+
 // Function to convert gssw cigar to projectA cigar
 projectA_cigar_t projectA_gssw_get_cigar(gssw_cigar* cigar) {
 
@@ -156,6 +193,9 @@ void projectA_gssw_graph_mapping_to_alignment(projectA_hash_graph_t* graph, gssw
     // Prepare CIGAR string field
     auto& cigar = alignment->cigar_string;
     cigar.len = 0;
+    cigar.operations_length = 0;
+    alignment->n_matches = 0;
+    alignment->n_mismatches = 0;
 
     // Copy offset and score
     alignment->offset = gm->position;
@@ -182,6 +222,12 @@ void projectA_gssw_graph_mapping_to_alignment(projectA_hash_graph_t* graph, gssw
 
         // Add CIGAR to total CIGAR
         projectA_concat_cigar(&cigar, &new_cigar);
+
+        // Count matches and mismatches
+        int32_t n_insertions;
+        int32_t n_deletions;
+        procetA_gssw_count_cigar_op(node_cigar.cigar, alignment->n_matches, alignment->n_mismatches, 
+                                                    n_insertions, n_deletions, cigar.operations_length);
     }
 }
 
@@ -215,9 +261,9 @@ void* projectA_gssw_init(vector<projectA_alignment_t*>& alignments, int32_t numT
     // uint8_t gap_extension = 1;
 
     int8_t match = 1;
-    int8_t mismatch = 127;
+    int8_t mismatch = 1;
     uint8_t gap_open = 1;
-    uint8_t gap_extension = 255;
+    uint8_t gap_extension = 1;
 
     gssw_sse2_disable();
     int8_t* nt_table = gssw_create_nt_table();

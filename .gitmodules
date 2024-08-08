@@ -10,3 +10,6 @@
 [submodule "algorithms/csswl"]
 	path = algorithms/csswl
 	url = https://github.com/mengyao/Complete-Striped-Smith-Waterman-Library.git
+[submodule "algorithms/edlib"]
+	path = algorithms/edlib
+	url = https://github.com/Martinsos/edlib.git

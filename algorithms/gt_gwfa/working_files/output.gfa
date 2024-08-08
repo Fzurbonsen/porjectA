@@ -1,8 +1,0 @@
-S	1	A	LN:i:1
-S	2	AGGA	LN:i:4
-S	3	GTTT	LN:i:4
-S	4	G	LN:i:1
-L	1	+	2	+	0M
-L	1	+	3	+	0M
-L	2	+	4	+	0M
-L	3	+	4	+	0M

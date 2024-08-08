@@ -30,7 +30,7 @@ void projectA_csswl(projectA_alignment_t* alignment) {
     // Define parameters
     int32_t l, m, k;
     // int32_t match = 1, mismatch = 1000, gap_open = 0, gap_extension = 1000;
-    int32_t match = 1, mismatch = 127, gap_open = 1, gap_extension = 127;
+    int32_t match = 1, mismatch = 1, gap_open = 1, gap_extension = 1;
     // int32_t match = 1, mismatch = -2, gap_open = 2, gap_extension = 1;
 
     // Reference and read sequences
