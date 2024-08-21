@@ -395,8 +395,6 @@ void timed_run_gssw(vector<projectA_alignment_t*>& alignments, int32_t numThread
 // }
 
 
-
-
 int main() {
 
     vector<projectA_node_list_t> clusters;
@@ -426,15 +424,25 @@ int main() {
         alignment->read = graphs[i].read;
         alignments2.push_back(alignment);
     }
-
-
-    projectA_get_alignment_gssw(alignments1, 8);
-    // projectA_get_alignment_gt_gwfa(alignments2, 8);
-    projectA_get_alignment_gwfa(alignments2, 8);
+    vector<projectA_alignment_t*> alignments3;
+    for (int32_t i = 0; i < graphs.size(); ++i) {
+        projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->graph = graphs[i].graph;
+        alignment->read = graphs[i].read;
+        alignments3.push_back(alignment);
+    }
 
     typedef std::chrono::high_resolution_clock Clock;
 
     auto t0 = Clock::now();
+    projectA_get_alignment_gssw(alignments1, 16);
+    auto t1 = Clock::now();
+
+    auto t2 = Clock::now();
+    projectA_get_alignment_gwfa(alignments3, 16);
+    projectA_get_alignment_gwfa(alignments2, 16);
+    auto t3 = Clock::now();
+
 
     // Truncate references for gwfa
     for (int i = 0; i < alignments1.size(); ++i) {
@@ -450,42 +458,32 @@ int main() {
         // alignments2[i]->read = new_read;
     }
 
-
     for (int32_t i = 0; i < alignments2.size(); ++i) {
         auto& alignment1 = alignments1[i];
         auto& alignment2 = alignments2[i];
-
-        // string new_reference;
-        // string new_read;
-
-        // projectA_get_gssw_reference(alignment1, new_reference);
-        // projectA_get_gssw_read(alignment1, new_read);
-
-        // alignment2->reference = new_reference;
-        // alignment2->read = new_read;
-
-        // EdlibAlignResult result1 = edlibAlign(alignment1->read.c_str(), strlen(alignment1->read.c_str()), 
-        //                                         alignment1->reference.c_str(), strlen(alignment1->reference.c_str()), 
-        //                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
-        // char* cigar1 = edlibAlignmentToCigar(result1.alignment, result1.alignmentLength, EDLIB_CIGAR_STANDARD);
-        // string cigar_str1 = cigar1;
-        // free(cigar1);
-        // edlibFreeAlignResult(result1);
-        // alignment1->cigar_string = projectA_parse_cigar_string(cigar_str1);
+        auto& alignment3 = alignments3[i];
 
         // csswl
         // alignment2->reference = alignment1->reference;
         // alignment2->read = alignment1->read;
-        projectA_csswl(alignment2);
+        projectA_csswl(alignment3);
 
         // // recut read
         // string new_read;
         // projectA_get_csswl_read(alignment2, new_read);
         // alignment2->read = new_read;
 
+        string new_reference;
+        string new_read;
+
+        projectA_get_gssw_reference(alignment3, new_reference);
+        projectA_get_gssw_read(alignment3, new_read);
+
+        alignment2->reference = new_reference;
+        alignment2->read = new_read;
 
         // edLib
-        // projectA_edlib(alignment2);
+        projectA_edlib(alignment2);
 
         // // ksw2
         // alignment2->reference = alignment1->reference;
@@ -494,39 +492,8 @@ int main() {
         // alignment2->offset = 0;
 
     }
-    auto t1 = Clock::now();
+    auto t4 = Clock::now();
 
-
-
-
-    // for (auto& alignment : alignments2) {
-    //     // edLib
-    //     EdlibAlignResult result = edlibAlign(alignment->read.c_str(), strlen(alignment->read.c_str()), 
-    //                                             alignment->reference.c_str(), strlen(alignment->reference.c_str()), 
-    //                                             edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
-    //     char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
-    //     string cigar_str = cigar;
-    //     free(cigar);
-    //     edlibFreeAlignResult(result);
-    //     alignment->cigar_string = projectA_parse_cigar_string(cigar_str);
-    //     alignment->offset = 0;
-
-    //     // ksw2
-    //     projectA_ksw2(alignment);
-    //     alignment->offset = 0;
-    // }
-
-    // for (auto& alignment : alignments2) {
-    //     EdlibAlignResult result = edlibAlign(alignment->reference.c_str(), strlen(alignment->reference.c_str()),
-    //                                             alignment->read.c_str(), strlen(alignment->read.c_str()), 
-    //                                             edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
-    //     char* cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
-    //     string cigar_str = cigar;
-    //     free(cigar);
-    //     edlibFreeAlignResult(result);
-    //     alignment->cigar_string = projectA_parse_cigar_string(cigar_str);
-    //     alignment->offset = 0;
-    // }
 
 
     FILE* file = fopen("./files/CIGAR.txt", "w");
@@ -549,18 +516,48 @@ int main() {
         if (match_per_length > 0.6) {
             n_high_score += 1;
 
+
+            // // Alignment 1/2
+            // // Calculate accuracy of the two CIGARs and print the CIGARs
+            // double acc = 0;
+            // acc = projectA_cigar_accuracy(&alignments1[i]->cigar_string, &alignments2[i]->cigar_string);
+            // cigar_accuracy += acc;
+            // fprintf(file, "gssw:\t");
+            // fprintf(file, "%i\t", alignments1[i]->offset);
+            // projectA_print_cigar(file, &alignments1[i]->cigar_string);
+            // // fprintf(file, "score:\t%d\t\tmatch/lenght:\t%f\n", alignments1[i]->score, match_per_length);
+            // // fprintf(file, "matches:\t%d\t\tmismatches:\t%d\t\tlength:\t%d\n", alignments1[i]->n_matches, alignments1[i]->n_mismatches, 
+            // //                                                                     alignments1[i]->cigar_string.operations_length);
+            // fprintf(file, "read:\t%s\n", alignments1[i]->read.c_str());
+            // fprintf(file, "ref:\t%s\n", alignments1[i]->reference.c_str());
+            
+
+            // fprintf(file, "gwfa:\t");
+            // fprintf(file, "%i\t", alignments2[i]->offset);
+            // projectA_print_cigar(file, &alignments2[i]->cigar_string);
+            // fprintf(file, "score:\t%d\n", alignments2[i]->score);
+            // fprintf(file, "read:\t%s\n", alignments2[i]->read.c_str());
+            // fprintf(file, "ref:\t%s\n", alignments2[i]->reference.c_str());
+
+            
+            // fprintf(file, "#accuracy:\t%f\n", acc);
+            // fprintf(file, "\n\n");
+
+
+
+            // Alignment 2/3
             // Calculate accuracy of the two CIGARs and print the CIGARs
             double acc = 0;
-            acc = projectA_cigar_accuracy(&alignments1[i]->cigar_string, &alignments2[i]->cigar_string);
+            acc = projectA_cigar_accuracy(&alignments3[i]->cigar_string, &alignments2[i]->cigar_string);
             cigar_accuracy += acc;
             fprintf(file, "gssw:\t");
-            fprintf(file, "%i\t", alignments1[i]->offset);
-            projectA_print_cigar(file, &alignments1[i]->cigar_string);
+            fprintf(file, "%i\t", alignments3[i]->offset);
+            projectA_print_cigar(file, &alignments3[i]->cigar_string);
             // fprintf(file, "score:\t%d\t\tmatch/lenght:\t%f\n", alignments1[i]->score, match_per_length);
             // fprintf(file, "matches:\t%d\t\tmismatches:\t%d\t\tlength:\t%d\n", alignments1[i]->n_matches, alignments1[i]->n_mismatches, 
             //                                                                     alignments1[i]->cigar_string.operations_length);
-            fprintf(file, "read:\t%s\n", alignments1[i]->read.c_str());
-            fprintf(file, "ref:\t%s\n", alignments1[i]->reference.c_str());
+            fprintf(file, "read:\t%s\n", alignments3[i]->read.c_str());
+            fprintf(file, "ref:\t%s\n", alignments3[i]->reference.c_str());
             
 
             fprintf(file, "gwfa:\t");
@@ -594,7 +591,8 @@ int main() {
             // fprintf(stderr, "accuracy:\t%f\n\n", acc);
 
             // Calculate accuracy of the two paths and print paths
-            node_accuracy += projectA_path_accuracy(alignments1[i]->nodes, alignments2[i]->nodes);
+            // node_accuracy += projectA_path_accuracy(alignments1[i]->nodes, alignments2[i]->nodes);
+            node_accuracy += projectA_path_accuracy(alignments3[i]->nodes, alignments2[i]->nodes);
             // projectA_print_path(stderr, alignments1[i]->nodes);
             // projectA_print_path(stderr, alignments2[i]->nodes);
             // fprintf(stderr, "[%s]\n\n", alignments1[i]->graph->nodes_in_order[alignments1[i]->graph->nodes_in_order.size()-1]->id.c_str());
@@ -602,7 +600,10 @@ int main() {
     }
     fclose(file);
 
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
+    auto duration_gssw = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
+    auto duration_gwfa = std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2);
+    auto duration_s2s = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
+    auto duration_gwfa_s2s = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t2);
 
     // Print result values to console
     cigar_accuracy = cigar_accuracy / n_high_score;
@@ -613,13 +614,16 @@ int main() {
     cerr << "n alignments:\t" << n_high_score << "\t";
     cerr << "all alignments:\t" << alignments1.size();
     cerr << endl;
-    cerr << "S2S runtime:\t" << duration.count() << endl;
+    cerr << "gssw: " << duration_gssw.count() << "\tgwfa+s2s: " << duration_gwfa_s2s.count() << "\tgwfa: " << duration_gwfa.count() << "\ts2s: " << duration_s2s.count() << endl;
     // cerr << count << "\t" << alignments1.size() << endl;
 
     for (auto& alignment : alignments1) {
         delete alignment;
     }
     for (auto& alignment : alignments2) {
+        delete alignment;
+    }
+    for (auto& alignment : alignments3) {
         delete alignment;
     }
 

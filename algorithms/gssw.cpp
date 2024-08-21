@@ -256,9 +256,9 @@ void* projectA_gssw_init(vector<projectA_alignment_t*>& alignments, int32_t numT
     // uint8_t gap_extension = 1000;
 
     // int8_t match = 1;
-    // int8_t mismatch = -2;
-    // uint8_t gap_open = 2;
-    // uint8_t gap_extension = 1;
+    // int8_t mismatch = 4;
+    // uint8_t gap_open = 4;
+    // uint8_t gap_extension = 4;
 
     int8_t match = 1;
     int8_t mismatch = 1;
