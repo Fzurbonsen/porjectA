@@ -395,6 +395,28 @@ void timed_run_gssw(vector<projectA_alignment_t*>& alignments, int32_t numThread
 // }
 
 
+// Function to write the alignment information to a test file
+void projectA_write_to_test_file(FILE* file, vector<projectA_alignment_t*>& alignments1, vector<projectA_alignment_t*>& alignments2, int32_t i) {
+
+    fprintf(file, "gssw:\t");
+    fprintf(file, "%i\t", alignments1[i]->offset);
+    projectA_print_cigar(file, &alignments1[i]->cigar_string);
+    // fprintf(file, "score:\t%d\t\tmatch/lenght:\t%f\n", alignments1[i]->score, match_per_length);
+    // fprintf(file, "matches:\t%d\t\tmismatches:\t%d\t\tlength:\t%d\n", alignments1[i]->n_matches, alignments1[i]->n_mismatches, 
+    //                                                                     alignments1[i]->cigar_string.operations_length);
+    fprintf(file, "read:\t%s\n", alignments1[i]->read.c_str());
+    fprintf(file, "ref:\t%s\n", alignments1[i]->reference.c_str());
+    
+
+    fprintf(file, "gwfa:\t");
+    fprintf(file, "%i\t", alignments2[i]->offset);
+    projectA_print_cigar(file, &alignments2[i]->cigar_string);
+    fprintf(file, "score:\t%d\n", alignments2[i]->score);
+    fprintf(file, "read:\t%s\n", alignments2[i]->read.c_str());
+    fprintf(file, "ref:\t%s\n", alignments2[i]->reference.c_str());
+}
+
+
 int main() {
 
     vector<projectA_node_list_t> clusters;
@@ -502,13 +524,6 @@ int main() {
     int count = 0;
     int n_high_score = 0;
     for (int i = 0; i < alignments1.size(); ++i) {
-        // Print reference and read
-        // fprintf(stderr, "reference:\t%s\nread:\t%s\n\n", alignments1[i]->reference.c_str(), alignments1[i]->read.c_str());
-        // fprintf(stderr, "reference:\t%s\nread:\t%s\n\n", alignments2[i]->reference.c_str(), alignments2[i]->read.c_str());
-        // count += projectA_compare_alignments_path(false, stderr, alignments1[i], alignments2[i]);
-        // projectA_print_cigar(stderr, &alignments1[i]->cigar_string);
-        // projectA_print_cigar(stderr, &alignments2[i]->cigar_string);
-        // fprintf(stderr, "\n");
 
         double match_per_length = (float)(alignments1[i]->n_matches)/(float)(alignments1[i]->cigar_string.operations_length);
 
@@ -522,24 +537,7 @@ int main() {
             // double acc = 0;
             // acc = projectA_cigar_accuracy(&alignments1[i]->cigar_string, &alignments2[i]->cigar_string);
             // cigar_accuracy += acc;
-            // fprintf(file, "gssw:\t");
-            // fprintf(file, "%i\t", alignments1[i]->offset);
-            // projectA_print_cigar(file, &alignments1[i]->cigar_string);
-            // // fprintf(file, "score:\t%d\t\tmatch/lenght:\t%f\n", alignments1[i]->score, match_per_length);
-            // // fprintf(file, "matches:\t%d\t\tmismatches:\t%d\t\tlength:\t%d\n", alignments1[i]->n_matches, alignments1[i]->n_mismatches, 
-            // //                                                                     alignments1[i]->cigar_string.operations_length);
-            // fprintf(file, "read:\t%s\n", alignments1[i]->read.c_str());
-            // fprintf(file, "ref:\t%s\n", alignments1[i]->reference.c_str());
-            
-
-            // fprintf(file, "gwfa:\t");
-            // fprintf(file, "%i\t", alignments2[i]->offset);
-            // projectA_print_cigar(file, &alignments2[i]->cigar_string);
-            // fprintf(file, "score:\t%d\n", alignments2[i]->score);
-            // fprintf(file, "read:\t%s\n", alignments2[i]->read.c_str());
-            // fprintf(file, "ref:\t%s\n", alignments2[i]->reference.c_str());
-
-            
+            // projectA_write_to_test_file(file, alignments1, alignments2, i);
             // fprintf(file, "#accuracy:\t%f\n", acc);
             // fprintf(file, "\n\n");
 
@@ -547,48 +545,25 @@ int main() {
 
             // Alignment 2/3
             // Calculate accuracy of the two CIGARs and print the CIGARs
-            double acc = 0;
-            acc = projectA_cigar_accuracy(&alignments3[i]->cigar_string, &alignments2[i]->cigar_string);
-            cigar_accuracy += acc;
-            fprintf(file, "gssw:\t");
-            fprintf(file, "%i\t", alignments3[i]->offset);
-            projectA_print_cigar(file, &alignments3[i]->cigar_string);
-            // fprintf(file, "score:\t%d\t\tmatch/lenght:\t%f\n", alignments1[i]->score, match_per_length);
-            // fprintf(file, "matches:\t%d\t\tmismatches:\t%d\t\tlength:\t%d\n", alignments1[i]->n_matches, alignments1[i]->n_mismatches, 
-            //                                                                     alignments1[i]->cigar_string.operations_length);
-            fprintf(file, "read:\t%s\n", alignments3[i]->read.c_str());
-            fprintf(file, "ref:\t%s\n", alignments3[i]->reference.c_str());
-            
-
-            fprintf(file, "gwfa:\t");
-            fprintf(file, "%i\t", alignments2[i]->offset);
-            projectA_print_cigar(file, &alignments2[i]->cigar_string);
-            fprintf(file, "score:\t%d\n", alignments2[i]->score);
-            fprintf(file, "read:\t%s\n", alignments2[i]->read.c_str());
-            fprintf(file, "ref:\t%s\n", alignments2[i]->reference.c_str());
-
-            
-            fprintf(file, "#accuracy:\t%f\n", acc);
-            fprintf(file, "\n\n");
-        
-
-            // // Not readable by prepared python script
-            // fprintf(file, "gssw:\t\n");
-            // fprintf(file, "read:\t%s\n", alignments1[i]->read.c_str());
-            // fprintf(file, "ref:\t%s\n", alignments1[i]->reference.c_str());
-            // fprintf(file, "CIGAR:\t");
-            // projectA_print_cigar(file, &alignments1[i]->cigar_string);
-
-            // fprintf(file, "gwfa:\t\n");
-            // fprintf(file, "read:\t%s\n", alignments2[i]->read.c_str());
-            // fprintf(file, "ref:\t%s\n", alignments2[i]->reference.c_str());
-            // fprintf(file, "CIGAR:\t");
-            // projectA_print_cigar(file, &alignments2[i]->cigar_string);
+            // double acc = 0;
+            // acc = projectA_cigar_accuracy(&alignments3[i]->cigar_string, &alignments2[i]->cigar_string);
+            // cigar_accuracy += acc;
+            // projectA_write_to_test_file(file, alignments3, alignments2, i);
             // fprintf(file, "#accuracy:\t%f\n", acc);
             // fprintf(file, "\n\n");
 
 
-            // fprintf(stderr, "accuracy:\t%f\n\n", acc);
+
+            // Alignment 1/3
+            // Calculate accuracy of the two CIGARs and print the CIGARs
+            double acc = 0;
+            acc = projectA_cigar_accuracy(&alignments1[i]->cigar_string, &alignments3[i]->cigar_string);
+            cigar_accuracy += acc;
+            projectA_write_to_test_file(file, alignments1, alignments3, i);
+            fprintf(file, "#accuracy:\t%f\n", acc);
+            fprintf(file, "\n\n");
+
+
 
             // Calculate accuracy of the two paths and print paths
             // node_accuracy += projectA_path_accuracy(alignments1[i]->nodes, alignments2[i]->nodes);
