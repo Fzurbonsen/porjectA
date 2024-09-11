@@ -19,11 +19,16 @@ EXE = $(BIN_DIR)/$(TARGET)
 TEST_EXE = $(BIN_DIR)/$(TEST_TARGET)
 
 # Library flags
-LIB_FLAGS = -lz -lgssw -lm -lstdc++ -lgwfa -ledlib -lksw2 -lcsswl -fsanitize=address
+LIB_FLAGS = -lz -lgssw -lm -lstdc++ -lgwfa -ledlib -lksw2 -lcsswl -labpoa -fsanitize=address
 LDFLAGS = -L$(LIB_DIR)
 
 # Libraries
-LIBS = $(LIB_DIR)/libgssw.a $(LIB_DIR)/libgwfa.a $(LIB_DIR)/libksw2.a $(LIB_DIR)/libcsswl.a $(LIB_DIR)/libedlib.a
+LIBS = $(LIB_DIR)/libgssw.a
+LIBS += $(LIB_DIR)/libgwfa.a
+LIBS += $(LIB_DIR)/libksw2.a
+LIBS += $(LIB_DIR)/libcsswl.a
+LIBS += $(LIB_DIR)/libedlib.a
+LIBS += $(LIB_DIR)/libabpoa.a
 
 # Source files
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
@@ -57,11 +62,13 @@ prepare_headers:
 	@mkdir -p $(INC_DIR)/ksw2
 	@mkdir -p $(INC_DIR)/csswl
 	@mkdir -p $(INC_DIR)/edlib
+	@mkdir -p $(INC_DIR)/abPOA
 	+ cd $(ALGO_DIR)/gssw && cp -r src/*.h $(INC_DIR)/gssw && cp -r src/simde $(INC_DIR)/gssw
 	+ cd $(ALGO_DIR)/gwfa && cp -r *.h $(INC_DIR)/gwfa
 	+ cd $(ALGO_DIR)/ksw2 && cp -r *.h $(INC_DIR)/ksw2
 	+ cd $(ALGO_DIR)/csswl/src && cp -r *.h $(INC_DIR)/csswl
 	+ cd $(ALGO_DIR)/edlib && cp -r ./edlib/include/edlib.h $(INC_DIR)/edlib
+	+ cd $(ALGO_DIR)/abPOA && cp -r ./src/*.h $(INC_DIR)/abPOA
 	cp $(HEADERS) $(INC_DIR)
 	cp $(TEST_HEADERS) $(INC_DIR)
 	cp -r $(ALGO_HEADERS) $(INC_DIR)/algorithms
@@ -95,13 +102,7 @@ $(OBJ_DIR)/%.o: $(ALGO_DIR)/%.cpp | prepare_headers
 	@mkdir -p $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c -o $@ $< -I$(INC_DIR)
 
-# Only ever use either gt_gwfa or gssw.
-# Create gt_gwfa library
-# $(LIB_DIR)/libgt_gwfa.a:
-# 	@mkdir -p $(LIB_DIR)
-# 	+ cd $(ALGO_DIR)/gt_gwfa && $(MAKE) && cp -r lib/* $(CWD)/lib && cp -r include/* $(INC_DIR)/gt_gwfa && cp -r src/*.h $(INC_DIR)/gt_gwfa
-# 	+ rm -rf $(LIB_DIR)/libgssw.a
-# 	+ rm -rf $(LIB_DIR)/libgwfa.a
+
 
 # Create gssw library
 $(LIB_DIR)/libgssw.a: prepare_headers
@@ -128,6 +129,11 @@ $(LIB_DIR)/libedlib.a: prepare_headers
 	@mkdir -p $(LIB_DIR)
 	+ cd $(ALGO_DIR)/edlib && cd build && cmake -D CMAKE_BUILD_TYPE=Release .. && make && cp lib/libedlib.a $(LIB_DIR)
 
+# Create abPOA library
+$(LIB_DIR)/libabpoa.a: prepare_headers
+	@mkdir -p $(LIB_DIR)
+	+ cd $(ALGO_DIR)/abPOA && make && cp -r lib/libabpoa.a $(LIB_DIR)
+
 run_tests: $(TEST_EXE)
 	$(shell $(TEST_EXE))
 
@@ -139,5 +145,6 @@ clean:
 	cd $(ALGO_DIR)/ksw2 && $(MAKE) clean && rm -f libksw2.a
 	cd $(ALGO_DIR)/csswl/src && $(MAKE) clean && rm -f libcsswl.a
 	cd $(ALGO_DIR)/edlib && $(MAKE) clean
+	cd $(ALGO_DIR)/abPOA && $(MAKE) clean
 
 .PHONY: all clean prepare_headers

@@ -1,5 +1,9 @@
 ## ProjectA
 
+# TODO
+- Complete the abPOA.cpp and .hpp files
+- Add PaSGAL and vargas
+
 # Compilation
 There are two possibilities to compile the code.
 To compile the basic code issue the following command in the projectA directory:

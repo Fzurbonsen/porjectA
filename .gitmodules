@@ -13,3 +13,6 @@
 [submodule "algorithms/edlib"]
 	path = algorithms/edlib
 	url = https://github.com/Martinsos/edlib.git
+[submodule "algorithms/abPOA"]
+	path = algorithms/abPOA
+	url = https://github.com/yangao07/abPOA.git
