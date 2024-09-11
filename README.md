@@ -1,10 +1,10 @@
-## ProjectA
+# ProjectA
 
-# TODO
+## TODO
 - Complete the abPOA.cpp and .hpp files
 - Add PaSGAL and vargas
 
-# Compilation
+## Compilation
 There are two possibilities to compile the code.
 To compile the basic code issue the following command in the projectA directory:
 
@@ -15,7 +15,7 @@ To compile and run the tests you issue the following command in the projectA dir
         make tests
         
 It is suggested not to use make tests as this project is still in development and there might be buggy functionalities in the test binary.
-# Usage
+## Usage
 All binaries are located in the bin directory.
 To use them call them as follows:
 
