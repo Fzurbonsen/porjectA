@@ -26,7 +26,15 @@ using namespace std;
 
 // Struct to hold parameters for abPOA
 struct projectA_abpoa_parameters_t {
-    // TODO
+    abpoa_t *ab;
+    abpoa_para_t *abpt;
+    int n_seqs;
+    char **seq_names;
+    int *seq_lens;
+    uint8_t **seqs;
+    int ** qual_weights;
+    FILE *out_fp;
+
 };
 
 // Struct to hold the inputs and outputs for abPOA

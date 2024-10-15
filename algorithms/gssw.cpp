@@ -256,14 +256,14 @@ void* projectA_gssw_init(vector<projectA_alignment_t*>& alignments, int32_t numT
     // uint8_t gap_extension = 1000;
 
     // int8_t match = 1;
-    // int8_t mismatch = 4;
-    // uint8_t gap_open = 4;
-    // uint8_t gap_extension = 4;
+    // int8_t mismatch = 1;
+    // uint8_t gap_open = 1;
+    // uint8_t gap_extension = 1;
 
     int8_t match = 1;
-    int8_t mismatch = 1;
-    uint8_t gap_open = 1;
-    uint8_t gap_extension = 1;
+    int8_t mismatch = 0;
+    uint8_t gap_open = 100;
+    uint8_t gap_extension = 100;
 
     gssw_sse2_disable();
     int8_t* nt_table = gssw_create_nt_table();

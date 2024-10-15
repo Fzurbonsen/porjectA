@@ -103,10 +103,11 @@ gwf_graph_t* projectA_hash_graph_to_gwf_graph(projectA_hash_graph_t* in_graph) {
 
 
 // Function to convert path to alignment
-void projectA_gwfa_path_to_alignment(projectA_hash_graph_t* graph, gwf_path_t* path, projectA_alignment_t* alignment) {
+void projectA_gwfa_path_to_alignment(projectA_hash_graph_t* graph, gwf_path_t* path, projectA_alignment_t* alignment, int32_t score) {
 
-    // Copy alignment size
+    // Copy alignment size and score
     alignment->size = path->nv;
+    alignment->score = score;
 
     // Reserve memory for alignmnet vectors
     alignment->nodes.reserve(alignment->size);
@@ -242,7 +243,7 @@ void projectA_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments, in
         }
 
         // Push alignment to alignments vector
-        projectA_gwfa_path_to_alignment(parameters[j].projectA_hash_graph, &(paths[j].path), alignments[i]);
+        projectA_gwfa_path_to_alignment(parameters[j].projectA_hash_graph, &(paths[j].path), alignments[i], paths[j].score);
 
         // Update thread index
         if (thread_index == numThreads - 1) {
@@ -251,6 +252,7 @@ void projectA_gwfa_post(void* ptr, vector<projectA_alignment_t*>& alignments, in
         } else {
             ++thread_index;
         }
+
     }
 
 

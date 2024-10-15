@@ -127,6 +127,21 @@ set<string> projectA_generate_aligned_nodes_set(vector<string>& nodes) {
 }
 
 
+// Function to create sets of nodes and their size from a path
+set<pair<string, int32_t>> projectA_generate_weighted_aligned_nodes_set(vector<pair<string, int32_t>>& nodes) {
+
+    // Initialize set
+    set<pair<string, int32_t>> node_set;
+
+    // Iterate over all nodes in the nodes vector and add them to the set
+    for (auto& node: nodes) {
+        node_set.insert(node);
+    }
+
+    return node_set;
+}
+
+
 // Function to calculate the Jaccard index between two sets
 double projectA_jaccard_index (set<int32_t>& set1, set<int32_t>& set2) {
     set<int32_t> intersection;
@@ -173,6 +188,52 @@ double projectA_path_accuracy(vector<string>& nodes1, vector<string>& nodes2) {
                 inserter(union_set, union_set.begin()));
 
     return !union_set.empty() ? static_cast<double>(intersection.size()) / union_set.size() : 0.0;
+}
+
+
+// Function to create id, length pair vectors of a node
+vector<pair<string, int32_t>> projectA_create_node_id_length_pair(vector<string> nodes, projectA_hash_graph_t* graph) {
+    vector<pair<string, int32_t>> pair_vec;
+
+    // Iterate over each node to create pairs
+    for (auto& node : nodes) {
+        pair_vec.push_back(make_pair(node, graph->nodes[node]->len));
+    }
+
+    return pair_vec;
+}
+
+
+// Function to calculate the weighted overlap of two alignments
+double project_weighted_path_accuracy(projectA_alignment_t* alignment1, projectA_alignment_t* alignment2) {
+    vector<string>& nodes1 = alignment1->nodes;
+    vector<string>& nodes2 = alignment2->nodes;
+
+    // Create pair vectors
+    vector<pair<string, int32_t>> pairs1 = projectA_create_node_id_length_pair(nodes1, alignment1->graph);
+    vector<pair<string, int32_t>> pairs2 = projectA_create_node_id_length_pair(nodes2, alignment1->graph);
+
+    // Generate sets from nodes
+    set<pair<string, int32_t>> node_set1 = projectA_generate_weighted_aligned_nodes_set(pairs1);
+    set<pair<string, int32_t>> node_set2 = projectA_generate_weighted_aligned_nodes_set(pairs2);
+
+    // Generate intersection and union
+    set<pair<string, int32_t>> intersection;
+    set<pair<string, int32_t>> union_set;
+    set_intersection(node_set1.begin(), node_set1.end(), node_set2.begin(), node_set2.end(),
+                        inserter(intersection, intersection.begin()));
+    set_union(node_set1.begin(), node_set1.end(), node_set2.begin(), node_set2.end(),
+                inserter(union_set, union_set.begin()));
+
+    // Calculate size of the sets
+    int32_t inter_size = 0;
+    int32_t union_size = 0;
+    for (auto& entry : intersection) inter_size += entry.second;
+    for (auto& entry : union_set) union_size += entry.second;
+
+    // cerr << inter_size << "\t" << union_size << endl;
+
+    return union_size != 0 ? static_cast<double>(inter_size / union_size) : 0.0;
 }
 
 

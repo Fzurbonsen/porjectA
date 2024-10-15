@@ -72,6 +72,11 @@ struct projectA_node_list_t {
     string read; // Read corresponding to the nodes
 };
 
+
+struct projectA_read_set_t {
+    
+};
+
 #endif // PROJECTA_GRAPH_HPP_STRUCTS
 
 #ifndef PROJECTA_GRAPH_HPP_FUNCTS

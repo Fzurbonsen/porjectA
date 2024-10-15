@@ -28,6 +28,7 @@
 #include "alignment.hpp"
 #include "algorithms/ksw2.hpp"
 #include "algorithms/csswl.hpp"
+// #include "algorithms/abPOA.hpp"
 
 // #include "gt_gwfa/edlib.h"
 #include "algorithms/edlib.hpp"
@@ -392,7 +393,7 @@ void timed_run_gssw(vector<projectA_alignment_t*>& alignments, int32_t numThread
 
 //     auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
 //     std::cerr << "gt_gwfa:\t" << "threads: " << numThreads << "\t" << duration2.count() << " ms\t" << endl;
-// }
+//  }
 
 
 // Function to write the alignment information to a test file
@@ -406,15 +407,64 @@ void projectA_write_to_test_file(FILE* file, vector<projectA_alignment_t*>& alig
     //                                                                     alignments1[i]->cigar_string.operations_length);
     fprintf(file, "read:\t%s\n", alignments1[i]->read.c_str());
     fprintf(file, "ref:\t%s\n", alignments1[i]->reference.c_str());
+    projectA_print_path(file, alignments1[i]->nodes);
     
 
     fprintf(file, "gwfa:\t");
     fprintf(file, "%i\t", alignments2[i]->offset);
     projectA_print_cigar(file, &alignments2[i]->cigar_string);
-    fprintf(file, "score:\t%d\n", alignments2[i]->score);
+    // fprintf(file, "score:\t%d\n", alignments2[i]->score);
     fprintf(file, "read:\t%s\n", alignments2[i]->read.c_str());
     fprintf(file, "ref:\t%s\n", alignments2[i]->reference.c_str());
+    projectA_print_path(file, alignments2[i]->nodes);
 }
+
+
+// Function to create read sets
+void projectA_create_read_sets(unordered_map<string, vector<projectA_alignment_t*>>& map, projectA_alignment_t* alignment) {
+    
+    // Check if the pointers are valid
+    if (alignment == nullptr) {
+        cerr << "Error: invalid alignment pointer!\n";
+        exit(1);
+    }
+
+    // Check if the read is already in the map
+    if (map.count(alignment->read) > 0) {
+
+        // If the read is int the map then we push the alignment to the vector in the map
+        map[alignment->read].push_back(alignment);
+
+    } else {
+
+        // If the read is not in the map yet, we add it together with a vector of alignment pointers
+        vector<projectA_alignment_t*> alignment_vec;
+        alignment_vec.push_back(alignment);
+        map[alignment->read] = alignment_vec;
+    }
+}
+
+
+// Function to determine max score read
+void projectA_determine_max_score_alignment(unordered_map<string, projectA_alignment_t*>& max_score_alignments_map,
+                                            unordered_map<string, vector<projectA_alignment_t*>>& aligned_reads_map) {
+    
+    //Iterate over all the reads in the map
+    for (auto& read_pair : aligned_reads_map) {
+
+        projectA_alignment_t* max_score_alignment = read_pair.second[0];
+        // Iterate over all the alignments for a specific read
+        for (auto& alignment : read_pair.second) {
+            // Check if the alignment has a higher score than the previous max score
+            if (alignment->score > max_score_alignment->score) {
+                max_score_alignment = alignment;
+            }
+        }
+        // Add max score alignment to the map
+        max_score_alignments_map[read_pair.first] = max_score_alignment;
+    }
+}
+
 
 
 int main() {
@@ -432,26 +482,42 @@ int main() {
     vector<projectA_algorithm_input_t> graphs;
     projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
 
+    // Maps to hold the different read sets
+    unordered_map<string, vector<projectA_alignment_t*>> read_set_map1;
+    unordered_map<string, vector<projectA_alignment_t*>> read_set_map2;
+    unordered_map<string, vector<projectA_alignment_t*>> read_set_map3;
+    // Maps to hold the max scoring alignments for each read
+    unordered_map<string, projectA_alignment_t*> max_scoring_alignments1;
+    unordered_map<string, projectA_alignment_t*> max_scoring_alignments2;
+    unordered_map<string, projectA_alignment_t*> max_scoring_alignments3;
+
+
     vector<projectA_alignment_t*> alignments1;
     for (int32_t i = 0; i < graphs.size(); ++i) {
         projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->id = i;
         alignment->graph = graphs[i].graph;
         alignment->read = graphs[i].read;
         alignments1.push_back(alignment);
+        projectA_create_read_sets(read_set_map1, alignment);
     }
     vector<projectA_alignment_t*> alignments2;
     for (int32_t i = 0; i < graphs.size(); ++i) {
         projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->id = i;
         alignment->graph = graphs[i].graph;
         alignment->read = graphs[i].read;
         alignments2.push_back(alignment);
+        projectA_create_read_sets(read_set_map2, alignment);
     }
     vector<projectA_alignment_t*> alignments3;
     for (int32_t i = 0; i < graphs.size(); ++i) {
         projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->id = i;
         alignment->graph = graphs[i].graph;
         alignment->read = graphs[i].read;
         alignments3.push_back(alignment);
+        projectA_create_read_sets(read_set_map3, alignment);
     }
 
     typedef std::chrono::high_resolution_clock Clock;
@@ -462,7 +528,7 @@ int main() {
 
     auto t2 = Clock::now();
     projectA_get_alignment_gwfa(alignments3, 16);
-    projectA_get_alignment_gwfa(alignments2, 16);
+    // projectA_get_alignment_gwfa(alignments2, 16);
     auto t3 = Clock::now();
 
 
@@ -495,17 +561,17 @@ int main() {
         // projectA_get_csswl_read(alignment2, new_read);
         // alignment2->read = new_read;
 
-        string new_reference;
-        string new_read;
+        // string new_reference;
+        // string new_read;
 
-        projectA_get_gssw_reference(alignment3, new_reference);
-        projectA_get_gssw_read(alignment3, new_read);
+        // projectA_get_gssw_reference(alignment3, new_reference);
+        // projectA_get_gssw_read(alignment3, new_read);
 
-        alignment2->reference = new_reference;
-        alignment2->read = new_read;
+        // alignment2->reference = new_reference;
+        // alignment2->read = new_read;
 
         // edLib
-        projectA_edlib(alignment2);
+        // projectA_edlib(alignment2);
 
         // // ksw2
         // alignment2->reference = alignment1->reference;
@@ -517,6 +583,10 @@ int main() {
     auto t4 = Clock::now();
 
 
+    // Find the max scoring alignment for each read
+    projectA_determine_max_score_alignment(max_scoring_alignments1, read_set_map1);
+    projectA_determine_max_score_alignment(max_scoring_alignments2, read_set_map2);
+    projectA_determine_max_score_alignment(max_scoring_alignments3, read_set_map3);
 
     FILE* file = fopen("./files/CIGAR.txt", "w");
     double cigar_accuracy = 0;
@@ -532,8 +602,8 @@ int main() {
             n_high_score += 1;
 
 
-            // // Alignment 1/2
-            // // Calculate accuracy of the two CIGARs and print the CIGARs
+            // Alignment 1/2
+            // Calculate accuracy of the two CIGARs and print the CIGARs
             // double acc = 0;
             // acc = projectA_cigar_accuracy(&alignments1[i]->cigar_string, &alignments2[i]->cigar_string);
             // cigar_accuracy += acc;
@@ -561,19 +631,38 @@ int main() {
             cigar_accuracy += acc;
             projectA_write_to_test_file(file, alignments1, alignments3, i);
             fprintf(file, "#accuracy:\t%f\n", acc);
-            fprintf(file, "\n\n");
+            // fprintf(file, "\n\n");
 
 
 
             // Calculate accuracy of the two paths and print paths
+            double n_acc = 0;
             // node_accuracy += projectA_path_accuracy(alignments1[i]->nodes, alignments2[i]->nodes);
-            node_accuracy += projectA_path_accuracy(alignments3[i]->nodes, alignments2[i]->nodes);
+            // node_accuracy += projectA_path_accuracy(alignments1[i]->nodes, alignments3[i]->nodes);
+            n_acc = project_weighted_path_accuracy(alignments1[i], alignments3[i]);
+            node_accuracy += n_acc;
+            fprintf(file, "#node accuracy:\t%f\n", n_acc);
+            fprintf(file, "\n\n");
+
             // projectA_print_path(stderr, alignments1[i]->nodes);
-            // projectA_print_path(stderr, alignments2[i]->nodes);
+            // projectA_print_path(stderr, alignments3[i]->nodes);
             // fprintf(stderr, "[%s]\n\n", alignments1[i]->graph->nodes_in_order[alignments1[i]->graph->nodes_in_order.size()-1]->id.c_str());
         }
     }
     fclose(file);
+
+    // Compare the max scoring alignments of alignments1 and alignments2
+    double pos_accuracy = 0;
+    int32_t pos_count = 0;
+    for (auto& read_pair : max_scoring_alignments1) {
+        string read = read_pair.first;
+
+        // Compare the max alignments for this read
+        if (max_scoring_alignments1[read]->id == max_scoring_alignments3[read]->id) {
+            pos_count++;
+        }
+    }
+    pos_accuracy = (double)pos_count / max_scoring_alignments1.size();
 
     auto duration_gssw = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
     auto duration_gwfa = std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2);
@@ -584,13 +673,22 @@ int main() {
     cigar_accuracy = cigar_accuracy / n_high_score;
     node_accuracy = node_accuracy / n_high_score;
     cerr << cigar_accuracy << "\t";
-    cerr << node_accuracy;
+    cerr << node_accuracy << "\t";
+    cerr << pos_accuracy;
     cerr << endl;
     cerr << "n alignments:\t" << n_high_score << "\t";
     cerr << "all alignments:\t" << alignments1.size();
     cerr << endl;
     cerr << "gssw: " << duration_gssw.count() << "\tgwfa+s2s: " << duration_gwfa_s2s.count() << "\tgwfa: " << duration_gwfa.count() << "\ts2s: " << duration_s2s.count() << endl;
     // cerr << count << "\t" << alignments1.size() << endl;
+
+    // // Iterate over the max_scoring_alignments to print the best scores
+    // for (auto& read_pair : max_scoring_alignments1) {
+    //     cerr << read_pair.first << "\n" << read_pair.second->score << endl;
+    // }
+    // for (auto& read_pair : max_scoring_alignments3) {
+    //     cerr << read_pair.first << "\n" << read_pair.second->score << endl;
+    // }
 
     for (auto& alignment : alignments1) {
         delete alignment;
@@ -601,7 +699,6 @@ int main() {
     for (auto& alignment : alignments3) {
         delete alignment;
     }
-
 
 
 

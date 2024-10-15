@@ -45,6 +45,7 @@ struct projectA_cigar_t {
  
 // Struct to hold an alignment
 struct projectA_alignment_t {
+    int32_t id; // Identifier of the alignment
     // Inputs
     string read; // Read to be aligned
     projectA_hash_graph_t* graph; // Graph on which to align the read
@@ -93,6 +94,14 @@ double projectA_cigar_accuracy(projectA_cigar_t* cigar1, projectA_cigar_t* cigar
 // POST:    return
 //      return:         Double of the relative accuracy of the two paths. 
 double projectA_path_accuracy(vector<string>& nodes1, vector<string>& nodes2);
+
+
+// PRE:     nodes1, nodes2
+//      nodes1:         Pointer to a vector of nodes and their length.
+//      nodes2:         Pointer to a vector of nodes and their length.
+// POST:    return
+//      return:         Double of the relative weighted accuracy of the two paths. 
+double project_weighted_path_accuracy(projectA_alignment_t* alignment1, projectA_alignment_t* alignment2);
 
 
 // PRE:     path, cutoff

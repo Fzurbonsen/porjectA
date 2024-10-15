@@ -31,7 +31,7 @@ void projectA_csswl(projectA_alignment_t* alignment) {
     int32_t l, m, k;
     // int32_t match = 1, mismatch = 1000, gap_open = 0, gap_extension = 1000;
     // int32_t match = 1, mismatch = 1, gap_open = 1, gap_extension = 1;
-    int32_t match = 1, mismatch = 10, gap_open = 10, gap_extension = 10;
+    int32_t match = 10, mismatch = 0, gap_open = 200, gap_extension = 200;
 
     // Reference and read sequences
     const char* ref_seq = reference.c_str();
