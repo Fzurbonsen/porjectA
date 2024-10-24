@@ -16,3 +16,9 @@
 [submodule "algorithms/abPOA"]
 	path = algorithms/abPOA
 	url = https://github.com/yangao07/abPOA.git
+[submodule "algorithms/vargas"]
+	path = algorithms/vargas
+	url = https://github.com/Fzurbonsen/vargas.git
+[submodule "algorithms/GNWA"]
+	path = algorithms/GNWA
+	url = https://github.com/Fzurbonsen/GNWA.git

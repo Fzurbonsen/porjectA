@@ -29,6 +29,8 @@
 #include "algorithms/ksw2.hpp"
 #include "algorithms/csswl.hpp"
 // #include "algorithms/abPOA.hpp"
+// #include "algorithms/vargas.hpp"
+#include "algorithms/gnwa.hpp"
 
 // #include "gt_gwfa/edlib.h"
 #include "algorithms/edlib.hpp"
@@ -295,6 +297,29 @@ void projectA_run_gssw(vector<projectA_alignment_t*>& alignments, int32_t numThr
 }
 
 
+// Function to run the GNWA algorithm
+void projectA_run_gnwa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
+    void* ptr;
+    vector<thread> threads;
+
+    projectA_algorithm_t* gnwa = projectA_get_gnwa();
+    ptr = gnwa->init(alignments, numThreads);
+    for (int i = 0; i < numThreads; ++i) {
+        threads.push_back(thread(gnwa->calculate_batch, ptr, i));
+    }
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
+    threads.clear();
+    gnwa->post(ptr, alignments, numThreads);
+
+    projectA_gnwa_destroy(gnwa);
+}
+
+
+
 // // Function to run gt_gwfa algorithm
 // void projectA_run_gt_gwfa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
 //     void* ptr1;
@@ -466,9 +491,7 @@ void projectA_determine_max_score_alignment(unordered_map<string, projectA_align
 }
 
 
-
-int main() {
-
+void run_standard_tests() {
     vector<projectA_node_list_t> clusters;
     projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/reference_graph.gfa");
     // projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/linear_graph.gfa");
@@ -481,7 +504,7 @@ int main() {
     // projectA_read_node_list(clusters, "./test_cases/linear_node_list.txt");
     vector<projectA_algorithm_input_t> graphs;
     projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
-
+ 
     // Maps to hold the different read sets
     unordered_map<string, vector<projectA_alignment_t*>> read_set_map1;
     unordered_map<string, vector<projectA_alignment_t*>> read_set_map2;
@@ -523,7 +546,8 @@ int main() {
     typedef std::chrono::high_resolution_clock Clock;
 
     auto t0 = Clock::now();
-    projectA_get_alignment_gssw(alignments1, 16);
+    // projectA_get_alignment_gssw(alignments1, 16);
+    projectA_run_gnwa(alignments1, 16);
     auto t1 = Clock::now();
 
     auto t2 = Clock::now();
@@ -554,7 +578,7 @@ int main() {
         // csswl
         // alignment2->reference = alignment1->reference;
         // alignment2->read = alignment1->read;
-        projectA_csswl(alignment3);
+        // projectA_csswl(alignment3);
 
         // // recut read
         // string new_read;
@@ -571,7 +595,8 @@ int main() {
         // alignment2->read = new_read;
 
         // edLib
-        // projectA_edlib(alignment2);
+        projectA_edlib(alignment3);
+        projectA_edlib(alignment1);
 
         // // ksw2
         // alignment2->reference = alignment1->reference;
@@ -598,7 +623,8 @@ int main() {
         double match_per_length = (float)(alignments1[i]->n_matches)/(float)(alignments1[i]->cigar_string.operations_length);
 
         // if (alignments1[i]->score > 200) {
-        if (match_per_length > 0.6) {
+        // if (match_per_length > 0.6) {
+        if (true) {
             n_high_score += 1;
 
 
@@ -632,6 +658,7 @@ int main() {
             projectA_write_to_test_file(file, alignments1, alignments3, i);
             fprintf(file, "#accuracy:\t%f\n", acc);
             // fprintf(file, "\n\n");
+            // projectA_print_cigar(stderr, &alignments1[i]->cigar);
 
 
 
@@ -667,7 +694,7 @@ int main() {
     auto duration_gssw = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
     auto duration_gwfa = std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2);
     auto duration_s2s = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
-    auto duration_gwfa_s2s = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t2);
+    auto duration_gwfa_s2s = std::chrono::duration_cast<std::chrono::milliseconds>( t4 - t2);
 
     // Print result values to console
     cigar_accuracy = cigar_accuracy / n_high_score;
@@ -712,13 +739,63 @@ int main() {
     // cerr << projectA_cigar_accuracy(&test_cigar1, &test_cigar2) << endl;
 
 
+    for (auto& graph : graphs) {
+        projectA_delete_hash_graph(graph.graph);
+    }
+    projectA_delete_hash_graph(ref_graph);
+}
 
+void run_tests_gnwa() {
+    vector<projectA_node_list_t> clusters;
+    projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/reference_graph.gfa");
+    // projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/linear_graph.gfa");
+    projectA_index_hash_graph(ref_graph);
+
+
+    projectA_read_node_list(clusters, "./test_cases/node_list.txt");
+    // projectA_read_node_list(clusters, "./test_cases/node_list_small.txt");
+    // projectA_read_node_list(clusters, "./test_cases/tests.txt");
+    // projectA_read_node_list(clusters, "./test_cases/linear_node_list.txt");
+    vector<projectA_algorithm_input_t> graphs;
+    projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
+
+
+
+    vector<projectA_alignment_t*> alignments1;
+    for (int32_t i = 0; i < graphs.size(); ++i) {
+        projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->id = i;
+        alignment->graph = graphs[i].graph;
+        alignment->read = graphs[i].read;
+        alignments1.push_back(alignment);
+    }
+
+    projectA_run_gnwa(alignments1, 46);
+
+
+
+    for (auto& alignment : alignments1) {
+        delete alignment;
+    }
 
 
     for (auto& graph : graphs) {
         projectA_delete_hash_graph(graph.graph);
     }
     projectA_delete_hash_graph(ref_graph);
+
+}
+
+
+int main() {
+
+    run_standard_tests();
+    // run_tests_gnwa();
+
+    // projectA_get_alignment_abpoa(alignments2, 1);
+
+
+
     cerr << "run succesfull!\n";
     return 0;
 }

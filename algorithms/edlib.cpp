@@ -26,7 +26,7 @@ void projectA_edlib(projectA_alignment_t* alignment) {
 
     EdlibAlignResult result = edlibAlign(read.c_str(), strlen(read.c_str()), 
                                             reference.c_str(), strlen(reference.c_str()), 
-                                            edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
+                                            edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
     char* edlib_cigar = edlibAlignmentToCigar(result.alignment, result.alignmentLength, EDLIB_CIGAR_STANDARD);
     string cigar_str = edlib_cigar;
     int32_t score = result.editDistance;
