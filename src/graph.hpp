@@ -49,14 +49,14 @@ struct projectA_hash_graph_t {
 
 
 // Struct to hold positions form vg
-struct projectA_position_t {
+struct  projectA_position_t{
     vector<string> id; // Vecotr holding the different position ids
     vector<bool> is_reverse; // Vector holding the orientation of the positions
     vector<uint32_t> offset; // Vector holding the offset of the different positions
     vector<size_t> forward_search_lengths;
     vector<size_t> backward_search_lengths;
 
-    string read; // Read corresponding to the positions
+    string read; // Read corresponding to the positiprojectA_position_tons
 };
 
 

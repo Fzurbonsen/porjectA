@@ -396,3 +396,29 @@ int projectA_compare_alignments_path(bool print, FILE* file, projectA_alignment_
     return 1;
 }
 
+
+float projectA_node_sub_set(const vector<string>& nodes_sim, const vector<string>& nodes_aln) {
+    int32_t count = 0;
+
+    // fprintf(stderr, "sim:\t");
+    // for (const auto& node : nodes_sim) {
+    //     fprintf(stderr, "%s\t", node.c_str());
+    // }
+    // fprintf(stderr, "\naln:\t");
+    // for (const auto& node : nodes_aln) {
+    //     fprintf(stderr, "%s\t", node.c_str());
+    // }
+
+    for (int i = 0; i < nodes_sim.size(); ++i) {
+        for (int j = 0; j < nodes_aln.size(); ++j) {
+            if (nodes_sim[i] == nodes_aln[j]) {
+                count++;
+            }
+        }
+    }
+
+    // fprintf(stderr, "\n%f", static_cast<float>(count) / nodes_sim.size());
+    // fprintf(stderr, "\n\n");
+    // return static_cast<float>(count) / nodes_sim.size();
+    return count > 0 ? 1 : 0;
+}

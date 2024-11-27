@@ -151,7 +151,7 @@ void* projectA_gwfa_init(vector<projectA_alignment_t*>& alignments, int32_t numT
     // Create the specifications for gwfa.
     int32_t v0 = 0;
     int32_t v1 = -1;
-    uint32_t max_lag = 0;
+    uint32_t max_lag = 5;
     int32_t traceback = 1;
 
     // Iterate over the input graphs

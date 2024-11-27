@@ -18,6 +18,7 @@
 
 #include "file_io.hpp"
 
+using json = nlohmann::json;
 using namespace std;
 
 // Function to read contents of a graph file
@@ -562,6 +563,77 @@ void projectA_read_node_list(vector<projectA_node_list_t>& node_lists, const str
 
     file.close();
     return;
+}
+
+
+// Function to read simulation positions from a JSON file and populate node_lists
+void projectA_read_sim_positions(unordered_map<string, vector<string>>& node_lists, const string& fileName) {
+    ifstream file(fileName);
+    if (!file.is_open()) {
+        cerr << "Error: Unable to open file " << fileName << endl;
+        return;
+    }
+
+    string line;
+    while (getline(file, line)) {
+        json j = json::parse(line);
+        string read_name = j["sequence"];  // Use "sequence" field as the key in the map
+
+        // Prepare to store node IDs for this read in a vector
+        vector<string> node_ids;
+
+        // Extract node IDs from the JSON data
+        for (const auto& map_entry : j["path"]["mapping"]) {
+            string node_id = map_entry["position"]["node_id"];
+            node_ids.push_back(node_id);
+        }
+
+        // Add the node_ids vector to node_lists with read_name as the key
+        node_lists[read_name] = node_ids;
+    }
+}
+
+// Function to read simulation positions from two input files and populate node_lists
+void projectA_read_sim_positions_from_two_files(unordered_map<string, vector<string>>& node_lists,
+                                                 const string& readsFileName, const string& nodeIdsFileName) {
+    ifstream readsFile(readsFileName);
+    ifstream nodeIdsFile(nodeIdsFileName);
+
+    if (!readsFile.is_open()) {
+        cerr << "Error: Unable to open reads file " << readsFileName << endl;
+        return;
+    }
+    if (!nodeIdsFile.is_open()) {
+        cerr << "Error: Unable to open node IDs file " << nodeIdsFileName << endl;
+        return;
+    }
+
+    string read_line;
+    string node_ids_line;
+    
+    // Process the reads and node IDs together
+    while (getline(readsFile, read_line) && getline(nodeIdsFile, node_ids_line)) {
+        // Use the read sequence as the key
+        string read_name = read_line;
+
+        // Prepare a vector to store the node IDs for this read
+        vector<string> node_ids;
+
+        // Split the node_ids_line by spaces to get individual node IDs
+        size_t pos = 0;
+        while ((pos = node_ids_line.find('\t')) != string::npos) {
+            string node_id = node_ids_line.substr(0, pos);
+            node_ids.push_back(node_id);
+            node_ids_line.erase(0, pos + 1);
+        }
+        node_ids.push_back(node_ids_line);  // Add the last node ID
+
+        // Add the node_ids vector to node_lists with read_name as the key
+        node_lists[read_name] = node_ids;
+    }
+
+    readsFile.close();
+    nodeIdsFile.close();
 }
 
 

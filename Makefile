@@ -57,6 +57,8 @@ algorithms: $(LIBS)
 
 # Ensure headers are prepared
 prepare_headers:
+	@mkdir -p $(INC_DIR)/nlohmann
+	+ cd $(DEPS_DIR)/json/include && cp -r ./nlohmann/* $(INC_DIR)/nlohmann
 	@mkdir -p $(INC_DIR)
 	@mkdir -p $(INC_DIR)/algorithms
 	@mkdir -p $(INC_DIR)/gssw
@@ -83,11 +85,11 @@ prepare_headers:
 	cp -r $(ALGO_HEADERS) $(INC_DIR)/algorithms
 
 # Linking step for the executable
-$(EXE): $(LIBS) $(OBJS) $(MAIN_OBJ)
+$(EXE): $(LIBS) $(OBJS) $(MAIN_OBJ) | prepare_headers
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(LDFLAGS) -o $@ $(filter %.o, $^) -I$(INC_DIR) $(LIB_FLAGS)
 
-$(TEST_EXE): $(LIBS) $(OBJS) $(TEST_OBJS)
+$(TEST_EXE): $(LIBS) $(OBJS) $(TEST_OBJS) | prepare_headers
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(LDFLAGS) -o $@ $(filter %.o, $^) -I$(INC_DIR) $(LIB_FLAGS)
 
@@ -110,6 +112,9 @@ $(OBJ_DIR)/%.o: $(TEST_DIR)/%.cpp | prepare_headers
 $(OBJ_DIR)/%.o: $(ALGO_DIR)/%.cpp | prepare_headers
 	@mkdir -p $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c -o $@ $< -I$(INC_DIR)
+
+# Compile deps dir
+$(OBJ_DIR)/%.o: $(DEPS_DIR)/
 
 
 

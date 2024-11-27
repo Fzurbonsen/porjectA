@@ -18,6 +18,7 @@
 #include <iostream>
 #include <cctype>
 #include <sstream>
+#include <unordered_set>
 
 #include "graph.hpp"
 
@@ -49,6 +50,10 @@ struct projectA_alignment_t {
     // Inputs
     string read; // Read to be aligned
     projectA_hash_graph_t* graph; // Graph on which to align the read
+    int8_t match;
+    int8_t mismatch;
+    uint8_t gap_open;
+    uint8_t gap_extend;
     // Intermediate
     string reference;
     // Outputs
@@ -145,6 +150,14 @@ int  projectA_compare_alignments(bool print, FILE* file, projectA_alignment_t* a
 //                      degree the two alignments match.
 int projectA_compare_alignments_path(bool print, FILE* file, projectA_alignment_t* alignment1, 
                                                             projectA_alignment_t* alignment2);
+
+
+// PRE:     nodes_sim, nodes_aln
+//      nodes_sim:      Vector that holds the simulated position.
+//      nodes_aln:      Vector that holds the aligned position.
+// POST:    return
+//      return:         Float that holds the relative content of the simulated position in the aligned position.
+float projectA_node_sub_set(const vector<string>& nodes_sim, const vector<string>& nodes_aln);
 
 
 #endif  //PROJECTA_ALIGNMENT_HPP

@@ -22,3 +22,6 @@
 [submodule "algorithms/GNWA"]
 	path = algorithms/GNWA
 	url = https://github.com/Fzurbonsen/GNWA.git
+[submodule "deps/json"]
+	path = deps/json
+	url = https://github.com/nlohmann/json.git

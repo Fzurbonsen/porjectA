@@ -13,6 +13,8 @@
 #include <vector>
 #include <unordered_map>
 
+#include "nlohmann/json.hpp"
+
 #include "graph.hpp"
 
 using namespace std;
@@ -67,6 +69,19 @@ projectA_hash_graph_t* projectA_hash_read_gfa(const string& fileName);
 //      node_lists:     Reference to a vector holding projectA_node_list_t where the node_lists
 //                      and corresponding reads stored in the file at fileName have been added.
 void projectA_read_node_list(vector<projectA_node_list_t>& node_lists, const string& fileName);
+
+
+// PRE:     node_lists, fileName
+//      node_lists:     Reference to a map holding a vector of strings with a string as key.
+//      fileName:       String containing the path to a file holding the simultaion positions.
+// POST:    node_lists
+//      node_lists:     Reference to a map hoilding a vector of strings where each position is the simulted position
+//                      and the key is the corresponding read.
+void projectA_read_sim_positions(unordered_map<string, vector<string>>& node_lists, const string& fileName);
+
+
+void projectA_read_sim_positions_from_two_files(unordered_map<string, vector<string>>& node_lists,
+                                                 const string& readsFileName, const string& nodeIdsFileName);
 
 
 // PRE:     file, graph
