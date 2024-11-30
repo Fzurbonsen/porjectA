@@ -349,6 +349,53 @@ void projectA_determine_max_score_alignment(unordered_map<string, projectA_align
 }
 
 
+// Function to sort a vector of alignments
+vector<projectA_alignment_t*> projectA_sort_alignment_vector(vector<projectA_alignment_t*>& alignments) {
+    if (alignments.empty()) {
+        cerr << "[projectA] Warning: Vector is empty!\n";
+        return {};
+    }
+
+    // Use sort with a custom comparator
+    sort(alignments.begin(), alignments.end(), [](const projectA_alignment_t* a, const projectA_alignment_t* b) {
+        if (a == nullptr || b == nullptr) return a != nullptr; // Nulls are treated as lowest priority
+        return a->score > b->score; // Sort descending by score
+    });
+
+    return alignments; // Return the sorted vector
+}
+
+
+// Function to determine the top five max score read
+void projectA_determine_n_max_score_alignment(unordered_map<string, vector<projectA_alignment_t*>>& n_max_score_alignments_map,
+                                            unordered_map<string, vector<projectA_alignment_t*>>& aligned_reads_map,
+                                            int32_t n) {
+    
+    // Iterate over all the reads in the map
+    for (auto& read_pair : aligned_reads_map) {
+
+        read_pair.second = projectA_sort_alignment_vector(read_pair.second);
+        
+        vector<projectA_alignment_t*> n_max_score_alignments;
+
+        // Check if there are at least n entries
+        if (read_pair.second.size() < n) {
+            // Copy all the entries
+            for (auto& entry : read_pair.second) {
+                n_max_score_alignments.push_back(entry);
+            }
+        } else {
+            // Copy the first n entries
+            for (int32_t i = 0; i < n; ++i) {
+                n_max_score_alignments.push_back(read_pair.second[i]);
+            }
+        }
+
+        n_max_score_alignments_map[read_pair.first] = n_max_score_alignments;
+    }
+}
+
+
 void run_standard_tests(string graphFile, string positionFile, string simPositionFile, int match, int mismatch, uint gap_open, uint gap_extend, FILE* outputFile) {
     vector<projectA_node_list_t> clusters;
     projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa(graphFile);
@@ -378,6 +425,10 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
     unordered_map<string, projectA_alignment_t*> max_scoring_alignments1;
     unordered_map<string, projectA_alignment_t*> max_scoring_alignments2;
     unordered_map<string, projectA_alignment_t*> max_scoring_alignments3;
+    // Maps to hold the top 5 max scoring alignments for each read
+    unordered_map<string, vector<projectA_alignment_t*>> five_max_scoring_alignments1;
+    unordered_map<string, vector<projectA_alignment_t*>> five_max_scoring_alignments2;
+    unordered_map<string, vector<projectA_alignment_t*>> five_max_scoring_alignments3;
 
 
     vector<projectA_alignment_t*> alignments1;
@@ -429,8 +480,8 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
 
     auto t2 = Clock::now();
     // projectA_get_alignment_gwfa(alignments3, 16);
-    // projectA_get_alignment_gwfa(alignments1, 32);
-    projectA_get_alignment_gssw(alignments1, 16);
+    projectA_get_alignment_gwfa(alignments1, 32);
+    // projectA_get_alignment_gssw(alignments1, 16);
     auto t3 = Clock::now();
 
 
@@ -490,6 +541,10 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
     projectA_determine_max_score_alignment(max_scoring_alignments1, read_set_map1);
     projectA_determine_max_score_alignment(max_scoring_alignments2, read_set_map2);
     projectA_determine_max_score_alignment(max_scoring_alignments3, read_set_map3);
+
+    projectA_determine_n_max_score_alignment(five_max_scoring_alignments1, read_set_map1, 5);
+    projectA_determine_n_max_score_alignment(five_max_scoring_alignments2, read_set_map2, 5);
+    projectA_determine_n_max_score_alignment(five_max_scoring_alignments3, read_set_map3, 5);
 
 
 
@@ -581,25 +636,50 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
     // }
     // fprintf(stderr, "\n");
 
+
+
+
     // Compare the max scoring alignments to the simulated positions
+    // double pos_accuracy = 0;
+    // int32_t pos_count = 0;
+    // for (auto& read_pair : max_scoring_alignments1) {
+    //     string read = read_pair.first;
+    //     // fprintf(stderr ,"%s\n", read.c_str());
+    //     // for (int i = 0; i < read_pair.second->nodes.size(); ++i) {
+    //     //     fprintf(stderr, "%s\t", read_pair.second->nodes[i].c_str());
+    //     // }
+    //     // fprintf(stderr, "\n");
+    //     // for (int i = 0; i < sim_positions[read].size(); ++i) {
+    //     //     fprintf(stderr, "%s\t", sim_positions[read][i].c_str());
+    //     // }
+    //     // fprintf(stderr, "\n");
+
+    //     // Compare the max alignment with the simulated alignment
+    //     pos_accuracy += projectA_node_sub_set(sim_positions[read], max_scoring_alignments1[read]->nodes);
+    // }
+    // pos_accuracy = (double)pos_accuracy / max_scoring_alignments1.size();
+
+
+
+    // Compare the top 5 max scoring alignments to the simulated positions
     double pos_accuracy = 0;
     int32_t pos_count = 0;
-    for (auto& read_pair : max_scoring_alignments1) {
+    for (auto& read_pair : five_max_scoring_alignments1) {
         string read = read_pair.first;
-        fprintf(stderr ,"%s\n", read.c_str());
-        for (int i = 0; i < read_pair.second->nodes.size(); ++i) {
-            fprintf(stderr, "%s\t", read_pair.second->nodes[i].c_str());
-        }
-        fprintf(stderr, "\n");
-        for (int i = 0; i < sim_positions[read].size(); ++i) {
-            fprintf(stderr, "%s\t", sim_positions[read][i].c_str());
-        }
-        fprintf(stderr, "\n");
 
-        // Compare the max alignment with the simulated alignment
-        pos_accuracy += projectA_node_sub_set(sim_positions[read], max_scoring_alignments1[read]->nodes);
+        // Compare the five max alignments with the simulated alignment
+        for (auto& alignment : five_max_scoring_alignments1[read]) {
+            int32_t is_sub_set = projectA_node_sub_set(sim_positions[read], alignment->nodes);
+            if (is_sub_set) {
+                pos_accuracy += is_sub_set;
+                break;
+            }
+            cerr << five_max_scoring_alignments1[read].size() << endl;
+        }
     }
-    pos_accuracy = (double)pos_accuracy / max_scoring_alignments1.size();
+    pos_accuracy = (double)pos_accuracy / five_max_scoring_alignments1.size();
+
+
 
     auto duration_gssw = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
     auto duration_gwfa = std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2);
