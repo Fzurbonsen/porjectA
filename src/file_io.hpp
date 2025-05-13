@@ -93,7 +93,7 @@ void projectA_print_graph(FILE* file, projectA_hash_graph_t* graph);
 
 
 // PRE:     file, alignment
-//      file:           Valid pointer to an outpu file.
+//      file:           Valid pointer to an output file.
 //      alignment:      Valid pointer to a projectA_alignment_t.
 // POST:    file
 //      file:           The alignment is printed to the file.

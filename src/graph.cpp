@@ -41,7 +41,7 @@ void projectA_delete_hash_graph(projectA_hash_graph_t* graph) {
 
 
 // Function to append a node to a projectA_hash_graph_t
-void projectA_hash_graph_append_node(projectA_hash_graph_t* graph, string id, uint32_t len, string& seq, uint32_t index) {
+projectA_node_t* projectA_hash_graph_append_node(projectA_hash_graph_t* graph, string id, uint32_t len, string& seq, uint32_t index) {
 
     // Check if input seq matches the supposed length
     if (len != seq.size()) {
@@ -67,6 +67,8 @@ void projectA_hash_graph_append_node(projectA_hash_graph_t* graph, string id, ui
 
     // Increase node counter
     graph->n_nodes++;
+
+    return node;
 }
 
 

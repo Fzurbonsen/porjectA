@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -g -fsanitize=address
+CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -g #-fsanitize=address
 TARGET = projectA
 TEST_TARGET = test
 CWD = $(shell pwd)
@@ -19,18 +19,17 @@ EXE = $(BIN_DIR)/$(TARGET)
 TEST_EXE = $(BIN_DIR)/$(TEST_TARGET)
 
 # Library flags
-LIB_FLAGS = -lz -lgssw -lm -lstdc++ -lgwfa -ledlib -lksw2 -lcsswl -lgnwa -fsanitize=address # -labpoa -lvargas_lib
+LIB_FLAGS = -lz -lgssw -lm -lstdc++ -ledlib -lcsswl -lgwfa -lgnwa -ls_gwfa #-fsanitize=address -lksw2
 LDFLAGS = -L$(LIB_DIR)
 
 # Libraries
 LIBS = $(LIB_DIR)/libgssw.a
 LIBS += $(LIB_DIR)/libgwfa.a
-LIBS += $(LIB_DIR)/libksw2.a
+# LIBS += $(LIB_DIR)/libksw2.a
 LIBS += $(LIB_DIR)/libcsswl.a
 LIBS += $(LIB_DIR)/libedlib.a
-# LIBS += $(LIB_DIR)/libabpoa.a
-# LIBS += $(LIB_DIR)/libvargas_lib.a
 LIBS += $(LIB_DIR)/libgnwa.a
+LIBS += $(LIB_DIR)/libs_gwfa.a
 
 # Source files
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
@@ -63,26 +62,21 @@ prepare_headers:
 	@mkdir -p $(INC_DIR)/algorithms
 	@mkdir -p $(INC_DIR)/gssw
 	@mkdir -p $(INC_DIR)/gwfa
-	@mkdir -p $(INC_DIR)/ksw2
 	@mkdir -p $(INC_DIR)/csswl
 	@mkdir -p $(INC_DIR)/edlib
-	@mkdir -p $(INC_DIR)/abPOA
-	@mkdir -p $(INC_DIR)/vargas
-	@mkdir -p $(INC_DIR)/vargas/htslib
 	@mkdir -p $(INC_DIR)/GNWA
+	@mkdir -p $(INC_DIR)/s_gwfa
 	+ cd $(ALGO_DIR)/gssw && cp -r src/*.h $(INC_DIR)/gssw && cp -r src/simde $(INC_DIR)/gssw
 	+ cd $(ALGO_DIR)/gwfa && cp -r *.h $(INC_DIR)/gwfa
-	+ cd $(ALGO_DIR)/ksw2 && cp -r *.h $(INC_DIR)/ksw2
 	+ cd $(ALGO_DIR)/csswl/src && cp -r *.h $(INC_DIR)/csswl
 	+ cd $(ALGO_DIR)/edlib && cp -r ./edlib/include/edlib.h $(INC_DIR)/edlib
-	+ cd $(ALGO_DIR)/abPOA && cp -r ./src/*.h $(INC_DIR)/abPOA
-	+ cd $(ALGO_DIR)/vargas && cp -r ./include/* $(INC_DIR)/vargas && cp -r ./cxxopts/src/*.hpp $(INC_DIR)/vargas
-	+ cd $(ALGO_DIR)/vargas/htslib && cp -r ./*.h $(INC_DIR)/vargas && cp -r ./htslib/*.h $(INC_DIR)/vargas/htslib
-	+ cd $(ALGO_DIR)/vargas/doctest && cp -r ./doctest/*.h $(INC_DIR)/vargas
 	+ cd $(ALGO_DIR)/GNWA && cp -r src/*.h $(INC_DIR)/GNWA
+	+ cd $(ALGO_DIR)/s_gwfa && cp -r src/*.h $(INC_DIR)/s_gwfa
 	cp $(HEADERS) $(INC_DIR)
 	cp $(TEST_HEADERS) $(INC_DIR)
 	cp -r $(ALGO_HEADERS) $(INC_DIR)/algorithms
+# @mkdir -p $(INC_DIR)/ksw2
+# + cd $(ALGO_DIR)/ksw2 && cp -r *.h $(INC_DIR)/ksw2
 
 # Linking step for the executable
 $(EXE): $(LIBS) $(OBJS) $(MAIN_OBJ) | prepare_headers
@@ -129,9 +123,9 @@ $(LIB_DIR)/libgwfa.a: prepare_headers
 	+ cd $(ALGO_DIR)/gwfa && $(MAKE) && ar rcs libgwfa.a gfa-base.o gfa-io.o gfa-sub.o gwf-ed.o kalloc.o && cp libgwfa.a $(LIB_DIR)
 
 # Create ksw2 library
-$(LIB_DIR)/libksw2.a: prepare_headers
-	@mkdir -p $(LIB_DIR)
-	+ cd $(ALGO_DIR)/ksw2 && $(MAKE) && ar rcs libksw2.a *.o && cp libksw2.a $(LIB_DIR)
+# $(LIB_DIR)/libksw2.a: prepare_headers
+# 	@mkdir -p $(LIB_DIR)
+# 	+ cd $(ALGO_DIR)/ksw2 && $(MAKE) && ar rcs libksw2.a *.o && cp libksw2.a $(LIB_DIR)
 
 # Create csswl library
 $(LIB_DIR)/libcsswl.a: prepare_headers
@@ -143,22 +137,17 @@ $(LIB_DIR)/libedlib.a: prepare_headers
 	@mkdir -p $(LIB_DIR)
 	+ cd $(ALGO_DIR)/edlib && cd build && cmake -D CMAKE_BUILD_TYPE=Release .. && make && cp lib/libedlib.a $(LIB_DIR)
 
-# Create abPOA library
-$(LIB_DIR)/libabpoa.a: prepare_headers
-	@mkdir -p $(LIB_DIR)
-	+ cd $(ALGO_DIR)/abPOA && $(MAKE) && cp -r lib/libabpoa.a $(LIB_DIR)
-
-# Create vargas library
-$(LIB_DIR)/libvargas_lib.a: prepare_headers
-	@mkdir -p $(LIB_DIR)
-	@mkdir -p $(ALGO_DIR)/vargas/build
-	+ cd $(ALGO_DIR)/vargas && cd htslib && autoconf && autoheader && $(MAKE) && cd .. && cd build && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_AVX512BW_GCC=ON -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc .. && $(MAKE) && cd .. && cp -r lib/libvargas_lib.a $(LIB_DIR)
-
 # Create GNWA library
 $(LIB_DIR)/libgnwa.a: prepare_headers
 	@mkdir -p $(LIB_DIR)
 	@mkdir -p $(ALGO_DIR)/GNWA
 	+ cd $(ALGO_DIR)/GNWA && $(MAKE) lib && cp -r lib/libgnwa.a $(LIB_DIR)
+
+# Create s_gwfa library
+$(LIB_DIR)/libs_gwfa.a: prepare_headers
+	@mkdir -p $(LIB_DIR)
+	@mkdir -p $(ALGO_DIR)/s_gwfa
+	+ cd $(ALGO_DIR)/s_gwfa && $(MAKE) lib && cp -r lib/libs_gwfa.a $(LIB_DIR)
 
 
 run_tests: $(TEST_EXE)
@@ -169,11 +158,10 @@ clean:
 	@rm -rf $(OBJ_DIR) $(INC_DIR) $(BIN_DIR) $(LIB_DIR)
 	cd $(ALGO_DIR)/gssw && $(MAKE) clean
 	cd $(ALGO_DIR)/gwfa && $(MAKE) clean && rm -f libgwfa.a
-	cd $(ALGO_DIR)/ksw2 && $(MAKE) clean && rm -f libksw2.a
+# cd $(ALGO_DIR)/ksw2 && $(MAKE) clean && rm -f libksw2.a
 	cd $(ALGO_DIR)/csswl/src && $(MAKE) clean && rm -f libcsswl.a
 	cd $(ALGO_DIR)/edlib && $(MAKE) clean
-	cd $(ALGO_DIR)/abPOA && $(MAKE) clean
-	cd $(ALGO_DIR)/vargas && cd build && $(MAKE) clean && cd .. && rm -rf bin && rm -rf lib && cd htslib && $(MAKE) clean
 	cd $(ALGO_DIR)/GNWA && $(MAKE) clean
+	cd $(ALGO_DIR)/s_gwfa && $(MAKE) clean
 
 .PHONY: all clean prepare_headers

@@ -100,6 +100,7 @@ void projectA_csswl(projectA_alignment_t* alignment) {
     // Copy offset
     alignment->offset = result->ref_begin1;
     alignment->read_start = result->read_begin1;
+    alignment->score = result->score1;
 
     // Cleanup
     align_destroy(result);

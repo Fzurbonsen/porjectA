@@ -96,7 +96,7 @@ void projectA_delete_hash_graph(projectA_hash_graph_t* graph);
 //      index:      Uinsigned int of size 32 bit that holds a unique index for the node.
 // POST:    graph
 //      graph:      Pointer to a projectA_hash_graph_t where the node with the specified id, len, seq has been added.
-void projectA_hash_graph_append_node(projectA_hash_graph_t* graph, string id, uint32_t len, string& seq, uint32_t index);
+projectA_node_t* projectA_hash_graph_append_node(projectA_hash_graph_t* graph, string id, uint32_t len, string& seq, uint32_t index);
 
 
 // PRE:     graph, start, end

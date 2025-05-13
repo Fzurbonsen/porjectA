@@ -151,7 +151,7 @@ void* projectA_gwfa_init(vector<projectA_alignment_t*>& alignments, int32_t numT
     // Create the specifications for gwfa.
     int32_t v0 = 0;
     int32_t v1 = -1;
-    uint32_t max_lag = 5;
+    uint32_t max_lag = 0;
     int32_t traceback = 1;
 
     // Iterate over the input graphs
@@ -199,8 +199,11 @@ void* projectA_gwfa_calculate_batch(void* ptr, int32_t thread_index) {
 
         // Run gwfa
         gwf_ed_index(parameter.km, parameter.graph);
-        score = gwf_ed(parameter.km, parameter.graph, parameter.ql, parameter.q, parameter.v0, parameter.v1,
-                        parameter.max_lag, parameter.traceback, &gwf_path);
+        // score = gwf_ed(parameter.km, parameter.graph, parameter.ql, parameter.q, parameter.v0, parameter.v1,
+        //                 parameter.max_lag, parameter.traceback, &gwf_path);
+
+        score = gwf_ed_infix(parameter.km, parameter.graph, parameter.ql, parameter.q, parameter.v0, parameter.v1,
+                                parameter.max_lag, parameter.traceback, &gwf_path);
 
         path.score = score;
         path.path = gwf_path;

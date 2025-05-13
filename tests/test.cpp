@@ -18,6 +18,8 @@
 #include <set>
 #include <chrono>
 #include <thread>
+#include <stack>
+#include <queue>
 
 #include "test.hpp"
 #include "extract_graph.hpp"
@@ -26,7 +28,7 @@
 #include "algorithms/gssw.hpp"
 #include "algorithms/gwfa.hpp"
 #include "alignment.hpp"
-#include "algorithms/ksw2.hpp"
+// #include "algorithms/ksw2.hpp"
 #include "algorithms/csswl.hpp"
 // #include "algorithms/abPOA.hpp"
 // #include "algorithms/vargas.hpp"
@@ -34,6 +36,10 @@
 
 // #include "gt_gwfa/edlib.h"
 #include "algorithms/edlib.hpp"
+
+#include "algorithms/s_gwfa.hpp"
+#include "s_gwfa/s_gwfa.h"
+#include "edlib/edlib.h"
 
 
 using namespace std;
@@ -229,6 +235,33 @@ void projectA_get_alignment_gssw(vector<projectA_alignment_t*>& alignments, int3
     projectA_gssw_destroy(gssw);
 }
 
+// Function to run and time the gssw algorithm
+int projectA_get_timed_alignment_gssw(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
+    void* ptr2;
+    vector<thread> threads;
+    typedef std::chrono::high_resolution_clock Clock;
+
+    projectA_algorithm_t* gssw = projectA_get_gssw();
+    ptr2 = gssw->init(alignments, numThreads);
+
+    auto t0 = Clock::now();
+    for (int i = 0; i < numThreads; ++i) {
+        threads.push_back(thread(gssw->calculate_batch, ptr2, i));
+    }
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
+    threads.clear();
+    auto t1 = Clock::now();
+
+    gssw->post(ptr2, alignments, numThreads);
+    projectA_gssw_destroy(gssw);
+    int duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+    return duration;
+}
+
 
 // Function to run gwfa algorithm
 void projectA_get_alignment_gwfa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
@@ -254,6 +287,97 @@ void projectA_get_alignment_gwfa(vector<projectA_alignment_t*>& alignments, int3
 
     // Destroy algorithm struct
     projectA_gwfa_destroy(gwfa);
+}
+
+
+// Function to run and time the gwfa algorithm
+int projectA_get_timed_alignment_gwfa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
+    void* ptr;
+    vector<thread> threads;
+    typedef std::chrono::high_resolution_clock Clock;
+    
+    // Get algorithm struct
+    projectA_algorithm_t* gwfa = projectA_get_gwfa();
+    
+    // Initialize data
+    ptr = gwfa->init(alignments, numThreads);
+
+    auto t0 = Clock::now();
+    for (int i = 0; i < numThreads; ++i) {
+        threads.push_back(thread(gwfa->calculate_batch, ptr, i));
+    }
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
+    auto t1 = Clock::now();
+
+    // gwfa post
+    gwfa->post(ptr, alignments, numThreads);
+
+    // Destroy algorithm struct
+    projectA_gwfa_destroy(gwfa);
+    int duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+    return duration;
+}
+
+// Function to run gwfa algorithm
+void projectA_get_alignment_s_gwfa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
+    void* ptr;
+    vector<thread> threads;
+    
+    // Get algorithm struct
+    projectA_algorithm_t* s_gwfa = projectA_get_s_gwfa();
+    
+    // Initialize data
+    ptr = s_gwfa->init(alignments, numThreads);
+    for (int i = 0; i < numThreads; ++i) {
+        threads.push_back(thread(s_gwfa->calculate_batch, ptr, i));
+    }
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
+
+    // gwfa post
+    s_gwfa->post(ptr, alignments, numThreads);
+
+    // Destroy algorithm struct
+    projectA_gwfa_destroy(s_gwfa);
+}
+
+
+// Function to run gwfa algorithm
+int projectA_get_timed_alignment_s_gwfa(vector<projectA_alignment_t*>& alignments, int32_t numThreads) {
+    void* ptr;
+    vector<thread> threads;
+    typedef std::chrono::high_resolution_clock Clock;
+    
+    // Get algorithm struct
+    projectA_algorithm_t* s_gwfa = projectA_get_s_gwfa();
+    
+    // Initialize data
+    ptr = s_gwfa->init(alignments, numThreads);
+    auto t0 = Clock::now();
+    for (int i = 0; i < numThreads; ++i) {
+        threads.push_back(thread(s_gwfa->calculate_batch, ptr, i));
+    }
+    for (auto& th : threads) {
+        if (th.joinable()) {
+            th.join();
+        }
+    }
+    auto t1 = Clock::now();
+
+    // gwfa post
+    s_gwfa->post(ptr, alignments, numThreads);
+
+    // Destroy algorithm struct
+    projectA_gwfa_destroy(s_gwfa);
+    int duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+    return duration;
 }
 
 
@@ -396,6 +520,39 @@ void projectA_determine_n_max_score_alignment(unordered_map<string, vector<proje
 }
 
 
+// Function to extract graph from sim_position
+projectA_hash_graph_t* projectA_extract_graph_from_sim_pos(projectA_hash_graph_t* ref_graph, vector<string> nodes) {
+
+    // Create new graph
+    projectA_hash_graph_t* graph = new projectA_hash_graph_t;
+    graph->n_edges = 0;
+    graph->n_nodes = 0;
+    for (auto& node : nodes) {
+        string id = ref_graph->nodes[node]->id;
+        uint32_t len = ref_graph->nodes[node]->len;
+        string seq = ref_graph->nodes[node]->seq;
+        uint32_t index = ref_graph->nodes[node]->index;
+        projectA_hash_graph_append_node(graph, id, len, seq, index);
+    }
+
+    // Iterate over all nodes to extract the contained edges.
+    for (int i = 0; i < nodes.size(); ++i) {
+        const auto& node = ref_graph->nodes[nodes[i]];
+
+        // Iterate over all edges linked to the node in the reference graph
+        for (const auto& next : node->next) {
+            
+            // If the next node is included in the graph we add the edge.
+            if (graph->nodes.find(next->id) != graph->nodes.end()) {
+                projectA_hash_graph_append_edge(graph, node->id, next->id);
+            }
+        }
+    }
+    projectA_hash_graph_in_order_nodes(graph);
+    return graph;
+}
+
+
 void run_standard_tests(string graphFile, string positionFile, string simPositionFile, int match, int mismatch, uint gap_open, uint gap_extend, FILE* outputFile) {
     vector<projectA_node_list_t> clusters;
     projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa(graphFile);
@@ -471,22 +628,93 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
         projectA_create_read_sets(read_set_map3, alignment);
     }
 
+    vector<projectA_algorithm_input_t> sim_graphs;
+    for (auto& pos : sim_positions) {
+        // projectA_algorithm_input_t pair;
+        // pair.graph = projectA_extract_graph_from_sim_pos(ref_graph, pos.second);
+        // pair.read = pos.first;
+        // sim_graphs.push_back(pair);
+    }
+
+    int32_t base_size = alignments1.size();
+    for (int32_t i = 0; i < sim_graphs.size(); ++i) {
+        projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->id = base_size + i;
+        alignment->graph = sim_graphs[i].graph;
+        alignment->read = sim_graphs[i].read;
+        alignment->match = match;
+        alignment->mismatch = mismatch;
+        alignment->gap_open = gap_open;
+        alignment->gap_extend = gap_extend;
+        alignments1.push_back(alignment);
+        projectA_create_read_sets(read_set_map1, alignment);
+    }
+
+    base_size = alignments2.size();
+    for (int32_t i = 0; i < sim_graphs.size(); ++i) {
+        projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->id = base_size + i;
+        alignment->graph = sim_graphs[i].graph;
+        alignment->read = sim_graphs[i].read;
+        alignment->match = match;
+        alignment->mismatch = mismatch;
+        alignment->gap_open = gap_open;
+        alignment->gap_extend = gap_extend;
+        alignments2.push_back(alignment);
+        projectA_create_read_sets(read_set_map2, alignment);
+    }
+
+    base_size = alignments3.size();
+    for (int32_t i = 0; i < sim_graphs.size(); ++i) {
+        projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->id = base_size + i;
+        alignment->graph = sim_graphs[i].graph;
+        alignment->read = sim_graphs[i].read;
+        alignment->match = match;
+        alignment->mismatch = mismatch;
+        alignment->gap_open = gap_open;
+        alignment->gap_extend = gap_extend;
+        alignments3.push_back(alignment);
+        projectA_create_read_sets(read_set_map3, alignment);
+    }
+
     typedef std::chrono::high_resolution_clock Clock;
 
     auto t0 = Clock::now();
-    // projectA_get_alignment_gssw(alignments1, 16);
-    // projectA_get_alignment_gnwa(alignments1, 16);
+    // // projectA_get_alignment_gssw(alignments1, 48);
+    // projectA_get_alignment_gssw(alignments1, 32);
+    // // projectA_get_alignment_gnwa(alignments1, 16);
+    // // projectA_get_alignment_gwfa(alignments1, 32);
     auto t1 = Clock::now();
+    // cerr << "gssw time: " << projectA_get_timed_alignment_gssw(alignments2, 1) << endl;
+    // cerr << "gssw time: " << projectA_get_timed_alignment_gssw(alignments1, 32) << endl;
+    // cerr << "s_gwfa time: " << projectA_get_timed_alignment_s_gwfa(alignments1, 1) << endl;
+    // cerr << "gwfa time: " << projectA_get_timed_alignment_gwfa(alignments1, i) << endl;
 
     auto t2 = Clock::now();
     // projectA_get_alignment_gwfa(alignments3, 16);
     projectA_get_alignment_gwfa(alignments1, 32);
-    // projectA_get_alignment_gssw(alignments1, 16);
+    projectA_get_alignment_gssw(alignments3, 32);
+    // projectA_get_alignment_s_gwfa(alignments1, 48);
+    // projectA_get_alignment_s_gwfa(alignments1, 32);
+
+    // for (int i = 1; i <= 30; ++i) {
+    //     cerr << i << "\t";
+    //     auto time_1 = Clock::now();
+    //     projectA_get_alignment_gwfa(alignments1, i);
+    //     for (auto alignment : alignments1) {
+    //         // projectA_edlib(alignment);
+    //         projectA_csswl(alignment);
+    //     }
+    //     auto time_2 = Clock::now();
+    //     auto duration_ = std::chrono::duration_cast<std::chrono::milliseconds>(time_2 - time_1);
+    //     cerr << duration_.count() << endl;
+    // }
     auto t3 = Clock::now();
 
 
     // Truncate references for gwfa
-    for (int i = 0; i < alignments1.size(); ++i) {
+    // for (int i = 0; i < alignments1.size(); ++i) {
 
         // Strings to hold the cut reference and read
         // string new_reference;
@@ -497,7 +725,7 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
 
         // alignments2[i]->reference = new_reference;
         // alignments2[i]->read = new_read;
-    }
+    // }
 
     for (int32_t i = 0; i < alignments2.size(); ++i) {
         auto& alignment1 = alignments1[i];
@@ -507,6 +735,7 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
         // csswl
         // alignment2->reference = alignment1->reference;
         // alignment2->read = alignment1->read;
+        // projectA_csswl(alignment1);
         // projectA_csswl(alignment3);
 
         // // recut read
@@ -530,7 +759,7 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
         // // ksw2
         // alignment2->reference = alignment1->reference;
         // alignment2->read = alignment1->read;
-        // projectA_ksw2(alignment2);
+        // projectA_ksw2(alignment1);
         // alignment2->offset = 0;
 
     }
@@ -557,7 +786,7 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
 
         double match_per_length = (float)(alignments1[i]->n_matches)/(float)(alignments1[i]->cigar_string.operations_length);
 
-        // if (alignments1[i]->score > 200) {
+        // if (alignments3[i]->score > 200) {
         // if (match_per_length > 0.6) {
         if (true) {
             n_high_score += 1;
@@ -590,7 +819,7 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
             double acc = 0;
             acc = projectA_cigar_accuracy(&alignments1[i]->cigar_string, &alignments3[i]->cigar_string);
             cigar_accuracy += acc;
-            projectA_write_to_test_file(file, alignments1, alignments3, i);
+            projectA_write_to_test_file(file, alignments1, alignments2, i);
             fprintf(file, "#accuracy:\t%f\n", acc);
             // fprintf(file, "\n\n");
             // projectA_print_cigar(stderr, &alignments1[i]->cigar);
@@ -607,6 +836,7 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
 
             // projectA_print_path(stderr, alignments1[i]->nodes);
             // projectA_print_path(stderr, alignments3[i]->nodes);
+            // fprintf(stderr, "\n");
             // fprintf(stderr, "[%s]\n\n", alignments1[i]->graph->nodes_in_order[alignments1[i]->graph->nodes_in_order.size()-1]->id.c_str());
         }
     }
@@ -614,18 +844,23 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
 
 
 
-    // // Compare the max scoring alignments of alignments1 and alignments2
-    // double pos_accuracy = 0;
-    // int32_t pos_count = 0;
-    // for (auto& read_pair : max_scoring_alignments1) {
-    //     string read = read_pair.first;
+    // Compare the max scoring alignments of alignments1 and alignments3
+    double pos_accuracy = 0;
+    int32_t pos_count = 0;
+    for (auto& read_pair : max_scoring_alignments1) {
+        string read = read_pair.first;
 
-    //     // Compare the max alignments for this read
-    //     if (max_scoring_alignments1[read]->id == max_scoring_alignments3[read]->id) {
-    //         pos_count++;
-    //     }
-    // }
-    // pos_accuracy = (double)pos_count / max_scoring_alignments1.size();
+        // Compare the max alignments for this read
+        if (max_scoring_alignments1[read]->id == max_scoring_alignments3[read]->id) {
+            pos_count++;
+            node_accuracy += project_weighted_path_accuracy(max_scoring_alignments1[read], max_scoring_alignments3[read]);
+            cigar_accuracy += projectA_cigar_accuracy(&max_scoring_alignments1[read]->cigar_string, &max_scoring_alignments3[read]->cigar_string);
+        }
+   }
+    pos_accuracy = (double)pos_count / max_scoring_alignments1.size();
+    node_accuracy = (double)node_accuracy / max_scoring_alignments1.size();
+    cigar_accuracy = (double)cigar_accuracy / max_scoring_alignments1.size();
+
 
     // for (const auto& nodes_pair : sim_positions) {
     //     const auto& nodes = nodes_pair.second;
@@ -661,23 +896,23 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
 
 
 
-    // Compare the top 5 max scoring alignments to the simulated positions
-    double pos_accuracy = 0;
-    int32_t pos_count = 0;
-    for (auto& read_pair : five_max_scoring_alignments1) {
-        string read = read_pair.first;
+    // // Compare the top 5 max scoring alignments to the simulated positions
+    // double pos_accuracy = 0;
+    // int32_t pos_count = 0;
+    // for (auto& read_pair : five_max_scoring_alignments1) {
+    //     string read = read_pair.first;
 
-        // Compare the five max alignments with the simulated alignment
-        for (auto& alignment : five_max_scoring_alignments1[read]) {
-            int32_t is_sub_set = projectA_node_sub_set(sim_positions[read], alignment->nodes);
-            if (is_sub_set) {
-                pos_accuracy += is_sub_set;
-                break;
-            }
-            cerr << five_max_scoring_alignments1[read].size() << endl;
-        }
-    }
-    pos_accuracy = (double)pos_accuracy / five_max_scoring_alignments1.size();
+    //     // Compare the five max alignments with the simulated alignment
+    //     for (auto& alignment : five_max_scoring_alignments1[read]) {
+    //         int32_t is_sub_set = projectA_node_sub_set(sim_positions[read], alignment->nodes);
+    //         if (is_sub_set) {
+    //             pos_accuracy += is_sub_set;
+    //             break;
+    //         }
+    //         // cerr << five_max_scoring_alignments1[read].size() << endl;
+    //     }
+    // }
+    // pos_accuracy = (double)pos_accuracy / five_max_scoring_alignments1.size();
 
 
 
@@ -687,8 +922,8 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
     auto duration_gwfa_s2s = std::chrono::duration_cast<std::chrono::milliseconds>( t4 - t2);
 
     // Print result values to console
-    cigar_accuracy = cigar_accuracy / n_high_score;
-    node_accuracy = node_accuracy / n_high_score;
+    // cigar_accuracy = cigar_accuracy / n_high_score;
+    // node_accuracy = node_accuracy / n_high_score;
     fprintf(outputFile, "%f\t", cigar_accuracy);
     fprintf(outputFile, "%f\t", node_accuracy);
     fprintf(outputFile, "%f\n", pos_accuracy);
@@ -741,8 +976,15 @@ void run_standard_tests(string graphFile, string positionFile, string simPositio
 
 
     for (auto& graph : graphs) {
+        // projectA_print_graph(stderr, graph.graph);
         projectA_delete_hash_graph(graph.graph);
     }
+
+    for (auto& graph : sim_graphs) {
+        // projectA_print_graph(stderr, graph.graph);
+        projectA_delete_hash_graph(graph.graph);
+    }
+
     projectA_delete_hash_graph(ref_graph);
 }
 
@@ -784,9 +1026,90 @@ void run_tests_gnwa() {
         projectA_delete_hash_graph(graph.graph);
     }
     projectA_delete_hash_graph(ref_graph);
-
 }
 
+
+
+void run_benchmark(string graphFile, string positionFile, string simPositionFile, int match, int mismatch, uint gap_open, uint gap_extend, FILE* outputFile) {
+    
+    int32_t runtime = 0;
+    int32_t setup_runtime = 0;
+    typedef std::chrono::high_resolution_clock Clock;
+    
+    
+    
+    vector<projectA_node_list_t> clusters;
+    projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa(graphFile);
+    // projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/linear_graph.gfa");
+    projectA_index_hash_graph(ref_graph);
+
+
+    // projectA_read_node_list(clusters, "./test_cases/node_list_2.txt");
+    // projectA_read_node_list(clusters, "./test_cases/node_list_2_small.txt");
+    projectA_read_node_list(clusters, positionFile);
+    // projectA_read_node_list(clusters, "./test_cases/tests.txt");
+    // projectA_read_node_list(clusters, "./test_cases/linear_node_list.txt");
+    vector<projectA_algorithm_input_t> graphs;
+    projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
+
+
+    // Read simulated positions
+    unordered_map<string, vector<string>> sim_positions;
+    projectA_read_sim_positions(sim_positions, simPositionFile);
+    // projectA_read_sim_positions_from_two_files(sim_positions, "./test_cases/sim_reads_new.txt", "./test_cases/sim_paths.txt");
+ 
+    // Maps to hold the different read sets
+    unordered_map<string, vector<projectA_alignment_t*>> read_set_map;
+    // Maps to hold the max scoring alignments for each read
+    unordered_map<string, projectA_alignment_t*> max_scoring_alignments;
+    // Maps to hold the top 5 max scoring alignments for each read
+    unordered_map<string, vector<projectA_alignment_t*>> five_max_scoring_alignments;
+
+    fprintf(outputFile, "n_threads,runtime,setup_runtime\n");
+
+    for (int i = 0; i <= 1; ++i) {
+        vector<projectA_alignment_t*> alignments;
+        for (int32_t i = 0; i < graphs.size(); ++i) {
+            projectA_alignment_t* alignment = new projectA_alignment_t;
+            alignment->id = i;
+            alignment->graph = graphs[i].graph;
+            alignment->read = graphs[i].read;
+            alignment->match = match;
+            alignment->mismatch = mismatch;
+            alignment->gap_open = gap_open;
+            alignment->gap_extend = gap_extend;
+            alignments.push_back(alignment);
+            projectA_create_read_sets(read_set_map, alignment);
+        }
+
+        runtime = projectA_get_timed_alignment_s_gwfa(alignments, 2^i);
+        auto t0 = Clock::now();
+        // for (auto alignment : alignments) {
+        //     projectA_edlib(alignment);
+        // }
+        auto t1 = Clock::now();
+        projectA_get_alignment_s_gwfa(alignments, 2^i);
+        // for (auto alignment : alignments) {
+        //     projectA_edlib(alignment);
+        // }
+        auto t2 = Clock::now();
+        runtime += std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+        setup_runtime = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+        fprintf(outputFile, "%i,%i,%i\n", 2^i, runtime, setup_runtime);
+
+        for (auto& alignment : alignments) {
+            delete alignment;
+        }
+    }
+    
+
+    for (auto& graph : graphs) {
+        // projectA_print_graph(stderr, graph.graph);
+        projectA_delete_hash_graph(graph.graph);
+    }
+    projectA_delete_hash_graph(ref_graph);
+}
 
 void sim_reads_and_path(string inputFile, string outputFile1, string outputFile2, int32_t n_reads, int32_t read_length) {
 
@@ -853,22 +1176,398 @@ void sim_reads_and_path(string inputFile, string outputFile1, string outputFile2
     projectA_delete_hash_graph(ref_graph);
 }
 
+char gen_random_base() {
+    switch (rand() % 4) {
+        case 0: {
+            return 'A';
+        }
+        case 1: {
+            return 'C';
+        }
+        case 2: {
+            return 'G';
+        }
+        case 3: {
+            return 'T';
+        }
+        default: {
+            cerr << "error: rand is not in scope!\n";
+            exit(1);
+        }
+    }
+}
+
+void gen_ref_seq_pair(string& ref, string& seq, int32_t len, int32_t n_changes) {
+    for (int i = 0; i < len; ++i) {
+        int32_t r_char = rand() % 4;
+        switch (r_char) {
+            case 0:
+                ref += 'A';
+                break;
+            case 1:
+                ref += 'C';
+                break;
+            case 2:
+                ref += 'G';
+                break;
+            case 3:
+                ref += 'T';
+                break;
+            default:
+                cerr << "error: rand is not in scope!\n";
+                exit(1);
+        }
+    }
+    seq = ref;
+    for (int i = 0; i < n_changes; ++i) {
+        int32_t type = rand() % 3;
+        switch (type) {
+            case 0: {
+                // Mismatch
+                int32_t pos = rand() % seq.size();
+                char r_base = gen_random_base();
+                while (r_base == seq[pos]) {
+                    r_base = gen_random_base();
+                }
+                seq[pos] = r_base;
+                break;
+            }
+            case 1: {
+                // Insertion
+                int32_t pos = rand() % seq.size();
+                seq.insert(pos, string(1, gen_random_base()));
+                break;
+            }
+            case 2: {
+                // Deletion
+                int32_t pos = rand() % seq.size();
+                seq.erase(pos, 1);
+                break;
+            }
+            default: {
+                cerr << "error: rand is not in scope!\n";
+                exit(1);
+            }
+        }
+    }
+}
+
+void test_s_gwfa_edlib() {
+
+    typedef std::chrono::high_resolution_clock Clock;
+
+    srand(time(0));
+    int32_t r = rand();
+
+    int32_t len = 10000;
+    int32_t n_changes = 100;
+    string ref;
+    string seq;
+    int32_t n_equal = 0;
+
+
+    // s2s tests
+    // ed tests
+    for (int i = 0; i < 100; ++i) {
+        ref = "";
+        seq = "";
+        gen_ref_seq_pair(ref, seq, len, n_changes);
+        s_gwfa_node_t* node = s_gwfa_node_create(0, strlen(ref.c_str()), ref.c_str());
+        s_gwfa_graph_t* graph = s_gwfa_graph_create();
+        s_gwfa_graph_add_node(graph, node);
+        EdlibAlignResult result = edlibAlign(seq.c_str(), strlen(seq.c_str()), 
+                                            ref.c_str(), strlen(ref.c_str()), 
+                                            edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
+        int32_t edlib_ed = result.editDistance;
+
+        // int32_t wfa_editdistance = wfa_ed(seq.c_str(), strlen(seq.c_str()), ref.c_str(), strlen(ref.c_str()));
+
+        void* km = km_init();
+        k_gwfa_path_t path_k_gwfa;
+        int32_t wfa_editdistance = k_gwfa_ed(km, graph, strlen(seq.c_str()), seq.c_str(), 1, &path_k_gwfa);
+        km_destroy(km);
+
+        cerr << "Edlib: " << edlib_ed << "\tWFA_ed: " << wfa_editdistance << endl;
+
+        if (edlib_ed == wfa_editdistance) {
+            n_equal++;
+        } else {
+            cerr << "\t\t\tref: " << ref << endl << "\t\t\tseq: " << seq << endl;
+        }
+    }
+
+    // infix tests
+    // for (int i = 0; i < 100; ++i) {
+    //     ref = "";
+    //     seq = "";
+    //     gen_ref_seq_pair(ref, seq, len, n_changes);
+
+    //     ref = "XXXXXXXXXXXXXXXXXXXXX" + ref + "XXXXXXXXXXXXXXXXXXXXXX";
+
+    //     EdlibAlignResult result = edlibAlign(seq.c_str(), strlen(seq.c_str()), 
+    //                                         ref.c_str(), strlen(ref.c_str()), 
+    //                                         edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+    //     int32_t edlib_ed = result.editDistance;
+
+    //     int32_t wfa_editdistance = wfa_ed_infix(seq.c_str(), strlen(seq.c_str()), ref.c_str(), strlen(ref.c_str()));
+
+    //     cerr << "Edlib: " << edlib_ed << "\tWFA_ed: " << wfa_editdistance << endl;
+
+    //     if (edlib_ed == wfa_editdistance) {
+    //         n_equal++;
+    //     } else {
+    //         cerr << "\t\t\tref: " << ref << endl << "\t\t\tseq: " << seq << endl;
+    //     }
+    // }
+
+    // // prefix tests
+    // for (int i = 0; i < 100; ++i) {
+    //     ref = "CTGAAGATTTTCG";
+    //     seq = "TGCTACTTGGATGGGCATGTGC";
+    //     // gen_ref_seq_pair(ref, seq, len, n_changes);
+    //     s_gwfa_node_t* node = s_gwfa_node_create(0, strlen(ref.c_str()), ref.c_str());
+    //     s_gwfa_graph_t* graph = s_gwfa_graph_create();
+    //     s_gwfa_graph_add_node(graph, node);
+
+    //     ref = ref;
+
+    //     EdlibAlignResult result = edlibAlign(seq.c_str(), strlen(seq.c_str()), 
+    //                                         ref.c_str(), strlen(ref.c_str()), 
+    //                                         edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
+    //     int32_t edlib_ed = result.editDistance;
+
+    //     // int32_t wfa_editdistance = wfa_ed_prefix(seq.c_str(), strlen(seq.c_str()), ref.c_str(), strlen(ref.c_str()));
+    //     void* km = km_init();
+    //     int32_t wfa_editdistance = k_gwfa_ed(km, graph, strlen(seq.c_str()), seq.c_str());
+    //     km_destroy(km);
+
+    //     s_gwfa_graph_destroy(graph);
+
+    //     cerr << "Edlib: " << edlib_ed << "\tWFA_ed: " << wfa_editdistance << endl;
+
+    //     if (edlib_ed == wfa_editdistance) {
+    //         n_equal++;
+    //     } else {
+    //         cerr << "\t\t\tref: " << ref << endl << "\t\t\tseq: " << seq << endl;
+    //     }
+    // }
+    cerr  << endl << "n_equal:\t" << n_equal << endl;
+}
+
+void print_node(FILE* file, s_gwfa_node_t* node) {
+    fprintf(file, "S\t%i\t%s\n", node->id, node->seq);
+}
+
+
+void print_edge(FILE* file, s_gwfa_edge_t* edge) {
+    fprintf(file, "L\t%i\t+\t%i\t+\t0M\n", edge->start->id, edge->end->id);
+}
+
+
+void print_graph(FILE* file, s_gwfa_graph_t* graph) {
+
+    s_gwfa_edge_t** edges = (s_gwfa_edge_t**)malloc(0);
+    int n_edges = 0;
+
+    // Print all the nodes and gather all the edges
+    for (int i = 0; i < graph->size; ++i) {
+        print_node(file, graph->nodes[i]);
+        edges = (s_gwfa_edge_t**)realloc(edges, sizeof(s_gwfa_edge_t*) * (n_edges + graph->nodes[i]->n_edges));
+        for (int j = 0; j < graph->nodes[i]->n_edges; ++j) {
+            edges[n_edges + j] = graph->nodes[i]->edges[j];
+        }
+        n_edges += graph->nodes[i]->n_edges;
+    }
+
+    // Print all the edges
+    for (int i = 0; i < n_edges; ++i) {
+        print_edge(file, edges[i]);
+    }
+
+    free(edges);
+}
+
+
+void s_gwfa_test_gwfa() {
+
+    typedef std::chrono::high_resolution_clock Clock;
+
+    vector<projectA_node_list_t> clusters;
+    projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/reference_graph.gfa");
+    // projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/linear_graph.gfa");
+    projectA_index_hash_graph(ref_graph);
+
+
+    // projectA_read_node_list(clusters, "./test_cases/node_list_2.txt");
+    // projectA_read_node_list(clusters, "./test_cases/node_list_2_small.txt");
+    projectA_read_node_list(clusters, "./test_cases/node_list_single_node.txt");
+    // projectA_read_node_list(clusters, "./test_cases/tests.txt");
+    // projectA_read_node_list(clusters, "./test_cases/linear_node_list.txt");
+    vector<projectA_algorithm_input_t> graphs;
+    projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
+
+    projectA_hash_graph_t* test_graph = projectA_hash_read_gfa("./test_cases/test_graph_2.gfa");
+    projectA_index_hash_graph(test_graph);
+    projectA_hash_graph_in_order_nodes(test_graph);
+    projectA_algorithm_input_t inp;
+    inp.graph = test_graph;
+    inp.read = "AGCAATTCTGTAGCCGTACA";
+    // graphs.push_back(inp);
+
+    vector<projectA_alignment_t*> alignments1;
+    for (int32_t i = 0; i < graphs.size(); ++i) {
+        projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->id = i;
+        alignment->graph = graphs[i].graph;
+        alignment->read = graphs[i].read;
+        alignments1.push_back(alignment);
+    }
+
+    // void* ptr = projectA_s_gwfa_init(alignments1, 1);
+    // ptr = projectA_s_gwfa_calculate_batch(ptr, 0);
+    // projectA_s_gwfa_post(ptr, alignments1, 1);
+    // projectA_get_alignment_s_gwfa(alignments1, 1);
+    int32_t time_gwfa = projectA_get_timed_alignment_gwfa(alignments1, 1);
+    // projectA_get_alignment_gwfa(alignments1, 1);
+    int duration_k = 0;
+    int duration_s = 0;
+
+    for (auto& alignment: alignments1) {
+        s_gwfa_graph_t* graph = projectA_s_gwfa_graph_build(alignment->graph);
+        // s_gwfa_path_t** path = (s_gwfa_path_t**)malloc(sizeof(s_gwfa_path_t*));
+        print_graph(stderr, graph);
+        cerr << alignment->read << endl;
+        // int32_t score = g_wfa_ed_infix(alignment->read.c_str(), alignment->read.length(), graph, path);
+        // projectA_print_graph(stderr, alignment->graph);
+        // void* km = km_init();
+        // k_gwfa_path_t path_k_gwfa;
+        // auto t0 = Clock::now();
+        // int32_t score2 = k_gwfa_ed(km, graph, alignment->read.length(), alignment->read.c_str(), 0, &path_k_gwfa);
+        // auto t1 = Clock::now();
+        // km_destroy(km);
+
+        auto t2 = Clock::now();
+        // int32_t score = g_wfa_ed_infix(alignment->read.c_str(), alignment->read.length(), graph, path);
+        auto t3 = Clock::now();
+
+        // cerr << alignment->score << "\t" << score << "\t" << score2 << endl;
+        cerr << alignment->score << endl;
+        // string g_wfa_ref = "";
+        // for (int i = 0; i < (*path)->size; ++i) {
+        //     fprintf(stderr, "[%i]->", (*path)->nodes[i]->id);
+        //     g_wfa_ref += (*path)->nodes[i]->seq;
+        // }
+        // fprintf(stderr, "\n");
+        // s_gwfa_path_destroy(*path);
+        // free(path);
+        s_gwfa_graph_destroy(graph);
+        for (auto& node : alignment->nodes) {
+            fprintf(stderr, "[%s]->", node.c_str());
+        }
+        fprintf(stderr, "\n");
+        // EdlibAlignResult result1 = edlibAlign(alignment->read.c_str(), strlen(alignment->read.c_str()), 
+        //                                     alignment->reference.c_str(), strlen(alignment->reference.c_str()), 
+        //                                     edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+        // int32_t edlib_ed = result1.editDistance;
+        // EdlibAlignResult result2 = edlibAlign(alignment->read.c_str(), strlen(alignment->read.c_str()), 
+        //                                     g_wfa_ref.c_str(), strlen(g_wfa_ref.c_str()), 
+        //                                     edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+        // int32_t edlib_g_wfa = result2.editDistance;
+        // cerr << edlib_ed << "\t" << edlib_g_wfa << endl;
+        // cerr << edlib_g_wfa << endl;
+        // cerr << endl;
+        // duration_k += std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+        // duration_s += std::chrono::duration_cast<std::chrono::milliseconds>(t3 - t2).count();
+    }
+
+    cerr << duration_k << "\t" << duration_s << "\t" << time_gwfa << endl;
+
+    for (auto& alignment : alignments1) {
+        delete alignment;
+    }
+
+
+    for (auto& graph : graphs) {
+        projectA_delete_hash_graph(graph.graph);
+    }
+    projectA_delete_hash_graph(ref_graph);
+}
+
+
+void test_gwf_ed_infix() {
+
+    vector<projectA_node_list_t> clusters;
+    projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/reference_graph.gfa");
+    // projectA_hash_graph_t* ref_graph = projectA_hash_read_gfa("./test_cases/linear_graph.gfa");
+    projectA_index_hash_graph(ref_graph);
+
+
+    projectA_read_node_list(clusters, "./test_cases/node_list_2.txt");
+    // projectA_read_node_list(clusters, "./test_cases/node_list_2_small.txt");
+    // projectA_read_node_list(clusters, "./test_cases/node_list_single_node.txt");
+    // projectA_read_node_list(clusters, "./test_cases/tests.txt");
+    // projectA_read_node_list(clusters, "./test_cases/linear_node_list.txt");
+    vector<projectA_algorithm_input_t> graphs;
+    projectA_build_graph_from_cluster(graphs, ref_graph, clusters);
+
+    projectA_hash_graph_t* test_graph = projectA_hash_read_gfa("./test_cases/test_graph_2.gfa");
+    projectA_index_hash_graph(test_graph);
+    projectA_hash_graph_in_order_nodes(test_graph);
+    projectA_algorithm_input_t inp;
+    inp.graph = test_graph;
+    inp.read = "AGCAATTCTGTAGCCGTACA";
+    // graphs.push_back(inp);
+
+    vector<projectA_alignment_t*> alignments1;
+    for (int32_t i = 0; i < graphs.size(); ++i) {
+        projectA_alignment_t* alignment = new projectA_alignment_t;
+        alignment->id = i;
+        alignment->graph = graphs[i].graph;
+        alignment->read = graphs[i].read;
+        alignments1.push_back(alignment);
+    }
+
+    projectA_get_alignment_gwfa(alignments1, 1);
+
+    int n = 0;
+
+    for (auto alignment : alignments1) {
+        EdlibAlignResult result2 = edlibAlign(alignment->read.c_str(), strlen(alignment->read.c_str()), 
+                                            alignment->reference.c_str(), strlen(alignment->reference.c_str()), 
+                                            edlibNewAlignConfig(-1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0));
+        int32_t ed = result2.editDistance;
+        if (ed != alignment->score) {
+            cerr << ed << "\t" << alignment->score << endl;
+            cerr << endl;
+            n++;
+        }
+    }
+    
+    cerr << (double)n/alignments1.size() << endl;
+    
+}
+
+
 
 int main() {
 
     int match = 1;
-    int mismatch = 100;
-    uint gap_open = 100;
-    uint gap_extend = 100;
+    int mismatch = 1;
+    uint gap_open = 1;
+    uint gap_extend = 1;
 
-
-    run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/node_list_2.txt", "./test_cases/1000.new.sim.txt", match, mismatch, gap_open, gap_extend, stderr);
-    // run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/node_list_2_small.txt", "./test_cases/1000.new.sim.txt", match, mismatch, gap_open, gap_extend);
+    // run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/node_list_2.txt", "./test_cases/1000.new.sim.txt", match, mismatch, gap_open, gap_extend, stderr);
+    // run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/node_list_2_small.txt", "./test_cases/1000.new.sim.txt", match, mismatch, gap_open, gap_extend, stderr);
     // run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/node_list_2_medium.txt", "./test_cases/1000.new.sim.txt", match, mismatch, gap_open, gap_extend, stderr);
-    // run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/tests.txt", "./test_cases/1000.new.sim.txt", match, mismatch, gap_open, gap_extend);s
+    // run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/tests.txt", "./test_cases/1000.new.sim.txt", match, mismatch, gap_open, gap_extend);
     // run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/linear_node_list.txt", "./test_cases/1000.new.sim.txt", match, mismatch, gap_open, gap_extend);
     // run_tests_gnwa();
-    // run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/node_list_3.txt", "./test_cases/1000.new.sim.txt", match, mismatch, gap_open, gap_extend, stderr);
+    // run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/node_list_3.txt", "", match, mismatch, gap_open, gap_extend, stderr);
+    // run_standard_tests("./test_cases/reference_graph.gfa", "./test_cases/node_list_4.txt", "", match, mismatch, gap_open, gap_extend, stderr);
+
+    // FILE* outputFile = fopen("./files/gssw_benchmark.csv", "w");
+    // run_benchmark("./test_cases/reference_graph.gfa", "./test_cases/node_list_2.txt", "./test_cases/1000.new.sim.txt", match, mismatch, gap_open, gap_extend, stderr);
+    // fclose(outputFile);
 
 
     // projectA_get_alignment_abpoa(alignments2, 1);
@@ -900,6 +1599,21 @@ int main() {
     // fclose(outputFile);
 
     // sim_reads_and_path("./test_cases/reference_graph.gfa", "./files/sim_paths.txt", "./files/sim_reads.txt", 100, 1000);
+
+    // test_s_gwfa_edlib();
+    // s_gwfa_test_gwfa();
+    test_gwf_ed_infix();
+
+    // string seq = "AAGTAAAACCCTTTACCATTAAGCAGCATTTCCCCTCCCCTAAGCCCTTCCCCTCAGCCCCACCAACCTGCATCTGACTCCATGGGCTTATCTACTCTGGATATCTCATAAATATGGAACCATACAATATGTGACCTTTTGTGTCTGGTTTCTTTCATTTAGCATGATGTTTTCAAGGATATCAGGATTTTTAAAACTTTCCAAGTGATTCTGATATGGAATCAAGATATCCACAAAGCAGGTGTGAGGCAGGGTAGACAATCAGATTCCATTTTAACTAAGCACTTGTGTGCAAGGAAACCACAAATATCTCATTTAATCCTTACAACAACTTGTGTGTATATCATTCCCATTTTACAGGCCGGGAAACTGAAGCTCAGAGAGGTGAAATCACCCACCTGACATCACATAGGTATTTAAAAGCAAATTGGTCTGACTCTCCAGCACCATGTCTCCTCTGCAACCCAGGCCCCTCTCCCAAATTAGCACTTGGTAACCATCAGAAAGGAAGAGTGGGCTGTGCCTACTGGCTGGCAAGCCTGGAATCTATAGGCAGAGTTGATCTACTGGCTAGAGAACATAGGACTTAAGGGTATTTGAGCTCCTTAACTTTTAAAATACCCTGCAACTAGAAAGAAAGTCAACAAACATGAAAGCTGGAGAGAACTTAGACCAATTTGTAAAAGCACTCATTTTTAAAACCAAAAACCCAAGGCCCAAAGACAGCAGACTGGCAAAACATGGTCAGATGCCTTCTGAATTTCAAAAAAGCTATCAGTCATTTTTACTTTTCATTGATCCTGAGAACAGGGTCTTCCCCAAACATAAAAACAAAACTCATTTTTACACAGTTTGACTACCACCGTATTATTAGCCATGGTTTCAATTCATTTAGGCAACAGATACCATGCATATACTATGTTCCAGGCACATTCTAGGGAGGAGGGATATTGCAATGAACAAAGACAGATAACACCCCCTGTCCCTCACAGAGCTACAT";
+    // string ref = "TTGTCACCTTGTCTACTCCTGTTCCTCAGGGACTCACCTGCCTTAGCTCAGTCCTTGCTGGGCAATTCTCTGTGTCTTTTCTAGGGCCTGCAAGTTCTGCCACTGGAGTTTACAAATGACCACTATCTTTAGCCAGATAACCAGGTATGCCCTAGCATTGGGCAGTTTTCCTCTACATCTTGCCCTCTCTGTCTCAAGGATTTAGGACCTAGATTATGTTGCTGCTTCAGGCAGTTCTGCTGCTGACAAGATAAATTCTGTTAGCATTTCACTAAGCTGATGGGTATAATTACTTTAGTTGGAGGTCACTAAAACCTGAATTTACAAATAAAAACTGGATCAGGGAGCAGTCTGTGTGTGTGTTGTGGAGGAGTGTGGGTGAAGGTACAACAGATAATATCCCTCCTTTGCTGAGATCCTTCCAGTGGCTCCCTAAATCACTCATAGTAAAAGCCAACTTCCTCACAGGGCCCTTCATCATGTTCTGCTGCTAGCCTCCATCTGCTTCTTTCCCTTACTCAACCTAATTCTAATTTCAGTTCCATTGGAGCCATACAGATCTCCTTGCTATTTCTTTATTTCAAATTCCAGTTATTCATTGCTGGCATATAGAAAAGCAATAGATTGTTGTATATTAACTTTGTGTCTTGTAACCTTGCTGTAAGTGCTGTTCTGGCAGTCTTTGTTTTGATCAATTCTTTGGGATATTCTACATAGACAGATCATCTGCAAACAAAGATAGTGTTATTTCTTCCATTTCAATCTGTAGAGCTTTTATTTCCTTTTCTGGCTTATTCCACTCGCTAAGATTTCCAGTAAAATGTTGAATAGGAGTAGAGAGAGAGGCACCTTGCTTTGTTCCTGATCTTAAGGGGAAAGCATCCAATTTCTTACCATTAAGTATGAAGTTGGCTGCAAAGAAGTTCTTTATCCAGTTGAGGAAATTCCCTCCTATTCATAGTTTGCTGCCCCATCAGCTTTTTAGGTTGGTGCAAAAGTAATTGTGGTTTTTGCTGTGACTTT";
+
+    // EdlibAlignResult result = edlibAlign(seq.c_str(), strlen(seq.c_str()), 
+    //                                         ref.c_str(), strlen(ref.c_str()), 
+    //                                         edlibNewAlignConfig(-1, EDLIB_MODE_SHW, EDLIB_TASK_PATH, NULL, 0));
+    // int32_t edlib_ed = result.editDistance;
+
+    // cerr << edlib_ed << endl;
+    
 
     cerr << "run succesfull!\n";
     return 0;
